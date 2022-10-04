@@ -14,6 +14,7 @@ async def get_interfaces(airmon):
     for a in await airmon.interfaces:
         print(a)
         print(a.asdict())
+
     return [a.asdict() for a in await airmon.interfaces]
 
 
