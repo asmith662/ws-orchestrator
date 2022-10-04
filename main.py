@@ -1,16 +1,20 @@
-# This is a sample Python script.
+import asyncio
 
-# Press Shift+F10 to execute it or replace it with your code.
-# Press Double Shift to search everywhere for classes, files, tool windows, actions, and settings.
-
-
-def print_hi(name):
-    # Use a breakpoint in the code line below to debug your script.
-    print(f'Hi, {name}')  # Press Ctrl+F8 to toggle the breakpoint.
+import pyrcrack
 
 
-# Press the green button in the gutter to run the script.
-if __name__ == '__main__':
-    print_hi('PyCharm')
+async def main():
+    if __name__ == '__main__':
+        airmon = pyrcrack.AirmonNg()
+        interfaces = await get_interfaces(airmon)
+        print(interfaces)
 
-# See PyCharm help at https://www.jetbrains.com/help/pycharm/
+
+async def get_interfaces(airmon):
+    for a in await airmon.interfaces:
+        print(a)
+        print(a.asdict())
+    return [a.asdict() for a in await airmon.interfaces]
+
+
+asyncio.run(main())
