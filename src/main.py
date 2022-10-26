@@ -18,6 +18,9 @@ logging.basicConfig(
     datefmt='%d-%b-%y %H:%M:%S'
 )
 
+# Arguments
+DO_NOT_KILL = False
+
 
 async def main():
     if __name__ == '__main__':
