@@ -1,8 +1,14 @@
 import logging
 import re
 
-from src.main import DO_NOT_KILL, Interfaces
 from src.models.cmd import stream_cmd
+
+# Global variables
+Interfaces = []
+Interface = ""
+
+# Arguments
+DO_NOT_KILL = False
 
 
 def check_monitor_mode(interface):

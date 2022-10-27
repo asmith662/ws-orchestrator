@@ -3,7 +3,7 @@ import logging
 import os.path
 from logging.handlers import RotatingFileHandler
 
-from src.models.network import update_interfaces
+from src.models.network import update_interfaces, Interfaces
 
 # logger
 log_path = os.path.realpath(os.path.join(os.path.dirname(__file__), 'ws-orchestrator.log'))
@@ -19,13 +19,6 @@ logging.basicConfig(
     format='%(asctime)s - %(levelname)s: %(message)s',
     datefmt='%d-%b-%y %H:%M:%S'
 )
-
-# Global variables
-Interfaces = []
-Interface = ""
-
-# Arguments
-DO_NOT_KILL = False
 
 
 async def main():
