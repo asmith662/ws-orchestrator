@@ -1,4 +1,3 @@
-import os
 from subprocess import run
 
 
@@ -21,9 +20,7 @@ async def run_shell_cmd(cmd: str) -> str:
     return check_return_code(run(cmd, shell=True))
 
 
-def stream_cmd(cmd: str) -> str:
-    return os.popen(cmd).read()
 
 
-def stream_cmd_hidden(cmd: str):
-    return os.popen(cmd)
+
+
