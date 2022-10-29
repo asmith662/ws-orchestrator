@@ -1,4 +1,4 @@
-from src.resources.cmd import run_cmd
+from src.models.cmd.cmd import run_cmd
 
 
 async def echo(args):
