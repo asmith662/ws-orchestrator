@@ -3,7 +3,8 @@ import logging
 import os.path
 from logging.handlers import RotatingFileHandler
 
-from src.models.cmd.cmd import run_cmd
+from src.models.cmd.cmd import run_cmd, run_cmd
+from src.models.network import update_interfaces
 
 """
 ------------------------------------------------------------------------------------------------------------------------
@@ -34,10 +35,10 @@ logging.basicConfig(
 
 async def main():
     if __name__ == '__main__':
-        # pwd = input(' sudo password: ')  # hard-coded password for testing
-        run_cmd('iwconfig', 'Af4Tf2Dp!')
+        # test your commands
+        # print(run_cmd(input(' enter cmd: \n'), input(' sudo password: \n')))
+        print(run_cmd('iwconfig'))
         # update_interfaces()
-        pass
 
 
 asyncio.run(main())

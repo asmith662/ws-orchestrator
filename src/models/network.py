@@ -2,7 +2,7 @@
 import logging
 import re
 
-from src.models.cmd.cmd import stream_cmd
+from src.models.cmd.cmd import run_cmd
 
 Interfaces = []
 Interface = ""
@@ -12,8 +12,8 @@ DO_NOT_KILL = False
 
 
 def check_monitor_mode(interface):
-    command_get_mode = f"sudo iwconfig {interface} | awk -F: '/Mode/{{print$2}}'"
-    if stream_cmd(command_get_mode).split(" ", 1)[0] == "Monitor":
+    command_get_mode = f"iwconfig {interface} | awk -F: '/Mode/{{print$2}}'"
+    if run_cmd(command_get_mode).split(" ", 1)[0] == "Monitor":
         return True
     else:
         return False
@@ -23,32 +23,32 @@ def set_monitor_mode(interface, enable):
     if enable:
         if not DO_NOT_KILL:
             logging.info("Killing processes.")
-            stream_cmd("sudo airmon-ng check kill")
+            run_cmd("airmon-ng check kill")
         else:
             logging.info("NOT killing processes.", 1)
         logging.info(f"Starting airmon-ng on: {interface}.")
-        stream_cmd(f"sudo airmon-ng start {interface}")
+        run_cmd(f"airmon-ng start {interface}")
     else:
         logging.info(f"Stopping airmon-ng on: {interface}.")
-        stream_cmd(f"sudo airmon-ng stop {interface}")
+        run_cmd(f"airmon-ng stop {interface}")
         logging.info("Starting Network Manager.")
         start_network_manager()
 
 
 def start_network_manager():
-    if "Unit dhcpcd.service" in stream_cmd("sudo systemctl start dhcpcd 2>&1"):
-        stream_cmd("sudo systemctl start NetworkManager")
+    if "Unit dhcpcd.service" in run_cmd("systemctl start dhcpcd 2>&1"):
+        run_cmd("systemctl start NetworkManager")
 
 
 def restart_network_manager():
-    if "Unit dhcpcd.service" in stream_cmd("sudo systemctl restart dhcpcd 2>&1"):
-        stream_cmd("sudo systemctl restart NetworkManager")
+    if "Unit dhcpcd.service" in run_cmd("systemctl restart dhcpcd 2>&1"):
+        run_cmd("systemctl restart NetworkManager")
 
 
 def scan_networks():
     networks = []
 
-    splitted_output_scan_wifi = stream_cmd("nmcli dev wifi").split("\n")
+    splitted_output_scan_wifi = run_cmd("nmcli dev wifi").split("\n")
     del splitted_output_scan_wifi[0]
 
     if not splitted_output_scan_wifi:
@@ -93,11 +93,11 @@ def update_interfaces():
     if Interfaces:
         del Interfaces[:]
 
-    interfaces = stream_cmd('sudo iwconfig 2>&1 | grep -oP "^\\w+"').split("\n")[:-1]
+    interfaces = run_cmd('iwconfig 2>&1 | grep -oP "^\\w+"').split("\n")[:-1]
     for interface in interfaces:
         print(interface)
         if interface != "lo" and interface != "eth0":
-            stream_cmd(f"sudo ifconfig {interface} up")
+            run_cmd(f"ifconfig {interface} up")
             Interfaces.append(interface)
 
     if len(Interfaces) == 0:
