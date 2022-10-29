@@ -4,6 +4,7 @@ import logging
 import os.path
 import re
 import subprocess
+import pexpect
 from logging.handlers import RotatingFileHandler
 
 # logger
@@ -42,7 +43,51 @@ DO_NOT_KILL = False
 DONT_ASK_TO_SAVE_PASSWORD = False
 
 
-def stream_cmd(cmd: str) -> str:
+def can_sudo(pwd: str = Password) -> bool:
+    args = f" echo {pwd} | sudo -S -k iwconfig".split()
+    kwargs = dict(stdout=subprocess.PIPE, encoding="ascii")
+    if pwd:
+        kwargs.update(input=pwd)
+    print(args)
+    cmd = subprocess.run(args, **kwargs)
+    print(cmd.stdout)
+    return "OK" in str(cmd.stdout)
+
+
+def format_cmd(cmd: str, pwd: str = None) -> tuple:
+    args = cmd.split()
+    kwargs = dict(stdout=subprocess.PIPE, encoding="ascii")
+    if pwd and can_sudo():
+        kwargs.update(input=pwd)
+    return args, kwargs,
+
+
+def get_cmd(cmd: str, pwd: str = None) -> tuple:
+    if 'sudo' in cmd:
+        root = os.geteuid() == 0
+        if not (root and pwd):
+            pwd = get_pass()
+            return format_cmd(cmd, pwd)
+        else:
+            if DONT_ASK_TO_SAVE_PASSWORD:
+                return format_cmd(cmd, pwd)
+            elif can_sudo(pwd):
+                return format_cmd(cmd, pwd)
+    else:
+        return format_cmd(cmd)
+
+
+def run_cmd(cmd: str, pwd: str = None):
+    out = os.system(f"echo {pwd} | sudo -S {cmd}")
+    print(out)
+    # args, kwargs = get_cmd(cmd, pwd)
+    # cmd = subprocess.run(args, **kwargs)
+    # print(cmd)
+
+
+def stream_cmd(cmd: str, pwd: str = Password) -> str:
+    # if 'sudo' in cmd and pwd != '':
+    # args = cmd
     pswd = get_pass()
     # return os.popen(cmd).read()
     p = subprocess.Popen(['sudo', '-S', cmd], stderr=subprocess.PIPE, stdout=subprocess.PIPE, stdin=subprocess.PIPE)
@@ -66,15 +111,13 @@ def stream_cmd_hidden(cmd: str):
 
 
 def get_pass():
-    global Password
-    pswd = Password
-    if pswd:
-        return pswd
-    else:
-        pswd = getpass.getpass(prompt='sudo password: ')
+    pwd = getpass.getpass(prompt='[sudo] password for {user}: ')
+    if can_sudo(pwd):
         if not DONT_ASK_TO_SAVE_PASSWORD:
-            save_prompt(pswd)
-        return pswd
+            save_prompt(pwd)
+        return pwd
+    else:
+        get_pass()
 
 
 def save_prompt(pswd):
@@ -83,7 +126,6 @@ def save_prompt(pswd):
     if save == 'y' or save == 'n':
         if save == 'y':
             Password = pswd
-            return True
         elif save == 'n':
             ask = input('Don\'t ask to save password again? \'y\' | any key to cancel\n')
             if ask == 'y':
@@ -174,8 +216,9 @@ def update_interfaces():
     if Interfaces:
         del Interfaces[:]
 
-    interfaces = stream_cmd("sudo iwconfig 2>&1 | grep -oP '^\\w+'").split("\n")[:-1]
+    interfaces = stream_cmd('sudo iwconfig 2>&1 | grep -oP "^\\w+"').split("\n")[:-1]
     for interface in interfaces:
+        print(interface)
         if interface != "lo" and interface != "eth0":
             stream_cmd(f"sudo ifconfig {interface} up")
             Interfaces.append(interface)
@@ -229,8 +272,9 @@ async def main():
     if __name__ == '__main__':
         # result = await run_shell_cmd('echo "Hello, world!"')
         # print(result)
-        print(Interfaces)
-        update_interfaces()
+        pwd = input(' sudo password: ')  # hard-coded password for testing
+        run_cmd('iwconfig', pwd)
+        # update_interfaces()
         pass
 
 
