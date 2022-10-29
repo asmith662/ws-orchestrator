@@ -3,6 +3,8 @@ import logging
 import os.path
 from logging.handlers import RotatingFileHandler
 
+from src.models.cmd.cmd import run_cmd
+
 """
 ------------------------------------------------------------------------------------------------------------------------
 Acronyms List:
@@ -33,7 +35,7 @@ logging.basicConfig(
 async def main():
     if __name__ == '__main__':
         # pwd = input(' sudo password: ')  # hard-coded password for testing
-        # run_cmd('iwconfig', pwd)
+        run_cmd('iwconfig', 'Af4Tf2Dp!')
         # update_interfaces()
         pass
 

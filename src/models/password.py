@@ -8,6 +8,7 @@ Password = ''
 DONT_ASK_TO_SAVE_PASSWORD = False
 PASSWORD_SAVED = False
 CAN_SUDO = False
+IS_ROOT = False
 
 
 def get_pass():

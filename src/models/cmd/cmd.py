@@ -8,7 +8,15 @@ import sh
 from src.models.password import can_sudo, get_pass, DONT_ASK_TO_SAVE_PASSWORD, Password
 
 
-def sudo_cmd(cmd: str) -> bool:
+# Wrapper for all cmds
+def execute(cmd: str):
+    if is_sudo_cmd(cmd):
+        pass
+    else:
+        pass
+
+
+def is_sudo_cmd(cmd: str) -> bool:
     return 'sudo' in cmd
 
 
@@ -21,7 +29,7 @@ def format_cmd(cmd: str, pwd: str = None) -> tuple:
 
 
 def get_cmd(cmd: str, pwd: str = None) -> tuple:
-    if 'sudo' in cmd:
+    if is_sudo_cmd(cmd):
         root = os.geteuid() == 0
         if not (root and pwd):
             pwd = get_pass()
@@ -36,7 +44,8 @@ def get_cmd(cmd: str, pwd: str = None) -> tuple:
 
 
 def run_cmd(cmd: str, pwd: str = None):
-    out = os.system(f"echo {pwd} | sudo -S {cmd}")
+    cmd = f"echo {pwd} | sudo -S {cmd}"
+    out = os.popen(cmd).read()
     print(out)
     # args, kwargs = get_cmd(cmd, pwd)
     # cmd = subprocess.run(args, **kwargs)
@@ -66,7 +75,6 @@ def stream_cmd_hidden(cmd: str):
         return out, err,
     except subprocess.TimeoutExpired:
         p.kill()
-
 
 # def with_sudo():
 #     with sh.contrib.sudo:
