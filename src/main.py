@@ -4,7 +4,7 @@ import os.path
 from logging.handlers import RotatingFileHandler
 
 from src.models.cmd.cmd import run_cmd, run_cmd
-from src.models.network import update_interfaces, get_interfaces
+from src.models.network import get_interfaces, print_interface_stats
 from src.models.password import can_sudo
 
 """
@@ -42,7 +42,9 @@ async def main():
         # run_cmd('iwconfig 2>&1 | grep -oP "^\\w+"', 'Af4Tf2Dp!')
 
         nics = get_interfaces()
+        stats = print_interface_stats()
         print(nics)
+        print(stats)
 
         # update_interfaces()
 

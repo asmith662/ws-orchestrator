@@ -138,8 +138,7 @@ def print_interface_stats():
     stats = psutil.net_if_stats()
     io_counters = psutil.net_io_counters(pernic=True)
     for nic, addrs in psutil.net_if_addrs().items():
-        print(f"NIC {nic}:")
-        Interfaces.append(nic)
+        print(f"{nic}:")
         if nic in stats:
             st = stats[nic]
             print("    stats          : ", end='')
