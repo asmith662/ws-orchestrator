@@ -1,5 +1,6 @@
 import logging
 import subprocess
+from typing import Tuple
 
 from src.models.password import Password, pwd_check
 
@@ -13,22 +14,40 @@ def execute(cmd: str):
 
 
 def sudo(cmd: str) -> list:
-    return ['sudo', '-S', cmd]
+    return ['sudo', '-S'] + cmd.split()
 
 
 def is_sudo_cmd(cmd: str) -> bool:
     return 'sudo' in cmd
 
 
-def run_cmd(cmd: str, pwd: str = Password) -> str:
+def run_cmd(cmd1: [str], pwd: str = Password) -> None:
     pwd = pwd_check(pwd)
-    p = subprocess.Popen(sudo(cmd), stderr=subprocess.PIPE, stdout=subprocess.PIPE, stdin=subprocess.PIPE, shell=False)
-    err = None
+    s1 = sudo(cmd1)
+    print(s1)
+    p1 = subprocess.Popen(s1, stderr=subprocess.STDOUT, stdout=subprocess.PIPE, stdin=subprocess.PIPE,)
+    e1 = None
     try:
-        out, err = p.communicate(input=(pwd + '\n').encode())
-        return out.decode()
+        o1, e1 = p1.communicate(input=pwd.encode())
+        print(o1.decode(), e1.decode())
     except Exception as e:
-        kill(p, e, cmd, err)
+        kill(p1, e, ' '.join(s1), e1)
+
+
+def run_cmd2(cmd1: [str], cmd2: [str] or None, pwd: str = Password) -> None:
+    pwd = pwd_check(pwd)
+    s1, s2 = sudo(cmd1), sudo(cmd2)
+    print(s1, s2)
+    p1 = subprocess.Popen(s1, stderr=subprocess.STDOUT, stdout=subprocess.PIPE, stdin=subprocess.PIPE,)
+    p2 = subprocess.Popen(s2, stdout=subprocess.PIPE, stdin=p1.stdout, )
+    e1, e2 = None, None
+    try:
+        o1, e1 = p1.communicate(input=pwd.encode())
+        o2, e2 = p2.communicate()
+        print(o1.decode(), e1.decode())
+        print(o2.decode(), e2.decode())
+    except Exception as e:
+        kill(p1, e, ' '.join(s1), e1)
 
 
 def run_background_cmd(cmd: str, pwd: str = Password, timeout: int = 5):
@@ -47,7 +66,7 @@ def run_background_cmd(cmd: str, pwd: str = Password, timeout: int = 5):
 # Not sure if this one will work or not, but leaving it for now
 def stream_cmd(cmd: str, pwd: str = Password):
     pwd = pwd_check(pwd)
-    p = subprocess.Popen(sudo(cmd), stderr=subprocess.PIPE, stdout=subprocess.PIPE, stdin=subprocess.PIPE,
+    p = subprocess.Popen(sudo(cmd), stderr=subprocess.STDOUT, stdout=subprocess.PIPE, stdin=subprocess.PIPE,
                          universal_newlines=True, bufsize=0)
     out, err = None, None
     try:

@@ -27,12 +27,12 @@ def get_pwd():
         return Password
 
 
-def custom_getpass(prompt='Password: ', stream=None):
-    if not stream:
-        stream = sys.stderr
-    print("This is a custom message to the user.", file=stream)
-    # noinspection PyProtectedMember
-    return getpass._raw_input(prompt, stream)
+# def custom_getpass(prompt='Password: ', stream=None):
+#     if not stream:
+#         stream = sys.stderr
+#     print("This is a custom message to the user.", file=stream)
+#     # noinspection PyProtectedMember
+#     return getpass._raw_input(prompt, stream)
 
 
 def is_root():
@@ -44,13 +44,14 @@ def is_root():
 def can_sudo(pwd: str = None) -> bool:
     global CAN_SUDO
     if is_root():
+        print('Root user detected.')
         CAN_SUDO = True
-    args = f"sudo -S echo OK".split()
+    args = f"sudo -S echo AUTHENTICATED".split()
     kwargs = dict(stdout=subprocess.PIPE, encoding="ascii")
     if pwd:
         kwargs.update(input=pwd)
     cmd = subprocess.run(args, **kwargs)
-    CAN_SUDO = "OK" in str(cmd.stdout)
+    CAN_SUDO = "AUTHENTICATED" in str(cmd.stdout)
     return CAN_SUDO
 
 
