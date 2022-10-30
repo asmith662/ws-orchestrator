@@ -126,36 +126,39 @@ def update_interfaces():
 
 
 def get_interfaces():
+    global Interfaces
     if Interfaces:
         del Interfaces[:]
-    # interfaces = run_cmd('iwconfig 2>&1 | grep -oP "^\\w+"')
-    interfaces = psutil.net_if_addrs()
+    for nic, addrs in psutil.net_if_addrs().items():
+        Interfaces.append(nic)
+    return Interfaces
+
+
+def print_interface_stats():
     stats = psutil.net_if_stats()
     io_counters = psutil.net_io_counters(pernic=True)
-    nics = []
     for nic, addrs in psutil.net_if_addrs().items():
-        # print(f"NIC {nic}:")
-        nics.append(nic)
-        # if nic in stats:
-        #     st = stats[nic]
-        #     print("    stats          : ", end='')
-        #     print(f"speed={st.speed}MB, duplex={duplex_map[st.duplex]}, mtu={st.mtu}, up={True if st.isup else False}")
-        # if nic in io_counters:
-        #     io = io_counters[nic]
-        #     print("    incoming       : ", end='')
-        #     print(f"bytes={bytes2human(io.bytes_recv)}, pkts={io.packets_recv}, errs={io.errin}, drops={io.dropin}")
-        #     print("    outgoing       : ", end='')
-        #     print(f"bytes={bytes2human(io.bytes_sent)}, pkts={io.packets_sent}, errs={io.errout}, drops={io.dropout}")
-        # for addr in addrs:
-        #     print("    %-4s" % af_map.get(addr.family, addr.family), end="")
-        #     print(f" address   : {addr.address}")
-        #     if addr.broadcast:
-        #         print(f"         broadcast : {addr.broadcast}")
-        #     if addr.netmask:
-        #         print(f"         netmask   : {addr.netmask}")
-        #     if addr.ptp:
-        #         print(f"      p2p       : {addr.ptp}")
-    return nics
+        print(f"NIC {nic}:")
+        Interfaces.append(nic)
+        if nic in stats:
+            st = stats[nic]
+            print("    stats          : ", end='')
+            print(f"speed={st.speed}MB, duplex={duplex_map[st.duplex]}, mtu={st.mtu}, up={True if st.isup else False}")
+        if nic in io_counters:
+            io = io_counters[nic]
+            print("    incoming       : ", end='')
+            print(f"bytes={bytes2human(io.bytes_recv)}, pkts={io.packets_recv}, errs={io.errin}, drops={io.dropin}")
+            print("    outgoing       : ", end='')
+            print(f"bytes={bytes2human(io.bytes_sent)}, pkts={io.packets_sent}, errs={io.errout}, drops={io.dropout}")
+        for addr in addrs:
+            print("    %-4s" % af_map.get(addr.family, addr.family), end="")
+            print(f" address   : {addr.address}")
+            if addr.broadcast:
+                print(f"         broadcast : {addr.broadcast}")
+            if addr.netmask:
+                print(f"         netmask   : {addr.netmask}")
+            if addr.ptp:
+                print(f"      p2p       : {addr.ptp}")
 
     # return run_cmd('iwconfig 2>&1 | grep -oP "^\\w+"')
 # .split("\n")[:-1]
