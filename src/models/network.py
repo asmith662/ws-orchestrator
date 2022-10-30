@@ -161,3 +161,4 @@ def print_interface_stats():
 
     # return run_cmd('iwconfig 2>&1 | grep -oP "^\\w+"')
 # .split("\n")[:-1]
+
