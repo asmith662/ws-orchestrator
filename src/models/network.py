@@ -141,7 +141,7 @@ def get_interfaces():
                 st.speed, duplex_map[st.duplex], st.mtu,
                 "yes" if st.isup else "no"))
         if nic in io_counters:
-            io = io_counters[int(nic)]
+            io = io_counters[nic]
             print("    incoming       : ", end='')
             print("bytes=%s, pkts=%s, errs=%s, drops=%s" % (
                 bytes2human(io.bytes_recv), io.packets_recv, io.errin,
