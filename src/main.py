@@ -41,7 +41,8 @@ async def main():
         # o, e = run_cmd('iwconfig', 'Af4Tf2Dp!')
         # run_cmd('iwconfig 2>&1 | grep -oP "^\\w+"', 'Af4Tf2Dp!')
 
-        get_interfaces()
+        nics = get_interfaces()
+        print(nics)
 
         # update_interfaces()
 
