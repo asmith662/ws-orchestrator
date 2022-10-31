@@ -3,9 +3,8 @@ import logging
 import os.path
 from logging.handlers import RotatingFileHandler
 
-from src.models.cmd.cmd import run_cmd, run_cmd
-from src.models.network import get_interfaces, print_interface_stats
-from src.models.password import can_sudo
+from src.models.interface import get_interfaces
+from src.models.network import Network
 
 """
 ------------------------------------------------------------------------------------------------------------------------
@@ -41,12 +40,8 @@ async def main():
         # o, e = run_cmd('iwconfig', 'Af4Tf2Dp!')
         # run_cmd('iwconfig 2>&1 | grep -oP "^\\w+"', 'Af4Tf2Dp!')
 
-        nics = get_interfaces()
-        stats = print_interface_stats()
-        print(nics)
-        print(stats)
-
-        # update_interfaces()
+        for i in get_interfaces():
+            print(i)
 
 
 asyncio.run(main())

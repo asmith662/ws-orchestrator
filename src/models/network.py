@@ -1,18 +1,21 @@
 # Global variables
 import logging
 import re
-import socket
 
 import psutil
-from psutil._common import bytes2human
+from psutil._common import snicstats, snetio
 
 from src.models.cmd.cmd import run_cmd
-
-Interfaces = []
-Interface = ""
+from src.models.interface import get_interfaces
 
 # Global Arguments
 DO_NOT_KILL = False
+
+
+class Network:
+
+    def __init__(self):
+        self.interfaces = get_interfaces()
 
 
 def check_monitor_mode(interface):
@@ -92,73 +95,21 @@ def scan_networks():
         networks.append(splitted_record)
     return networks
 
+# def get_interfaces():
+#     return [NetInterface(n, a, nic_stats(), io_stats()) for n, a in get_nics().items()]
 
-af_map = {
-    socket.AF_INET: 'IPv4',
-    socket.AF_INET6: 'IPv6',
-    psutil.AF_LINK: 'MAC',
-}
-
-duplex_map = {
-    psutil.NIC_DUPLEX_FULL: "full",
-    psutil.NIC_DUPLEX_HALF: "half",
-    psutil.NIC_DUPLEX_UNKNOWN: "?",
-}
-
-
-def update_interfaces():
-    if Interfaces:
-        del Interfaces[:]
-
-    interfaces = run_cmd('iwconfig 2>&1 | grep -oP "^\\w+"').split("\n")[:-1]
-    for interface in interfaces:
-        print(interface)
-        if interface != "lo" and interface != "eth0":
-            run_cmd(f"ifconfig {interface} up")
-            Interfaces.append(interface)
-
-    if len(Interfaces) == 0:
-        logging.info("Scanning for interfaces.")
-        restart_network_manager()
-        update_interfaces()
-    else:
-        print(i for i in Interfaces)
-
-
-def get_interfaces():
-    global Interfaces
-    if Interfaces:
-        del Interfaces[:]
-    for nic, addrs in psutil.net_if_addrs().items():
-        Interfaces.append(nic)
-    return Interfaces
-
-
-def print_interface_stats():
-    stats = psutil.net_if_stats()
-    io_counters = psutil.net_io_counters(pernic=True)
-    for nic, addrs in psutil.net_if_addrs().items():
-        print(f"{nic}:")
-        if nic in stats:
-            st = stats[nic]
-            print("    stats          : ", end='')
-            print(f"speed={st.speed}MB, duplex={duplex_map[st.duplex]}, mtu={st.mtu}, up={True if st.isup else False}")
-        if nic in io_counters:
-            io = io_counters[nic]
-            print("    incoming       : ", end='')
-            print(f"bytes={bytes2human(io.bytes_recv)}, pkts={io.packets_recv}, errs={io.errin}, drops={io.dropin}")
-            print("    outgoing       : ", end='')
-            print(f"bytes={bytes2human(io.bytes_sent)}, pkts={io.packets_sent}, errs={io.errout}, drops={io.dropout}")
-        for addr in addrs:
-            print("    %-4s" % af_map.get(addr.family, addr.family), end="")
-            print(f" address   : {addr.address}")
-            if addr.broadcast:
-                print(f"         broadcast : {addr.broadcast}")
-            if addr.netmask:
-                print(f"         netmask   : {addr.netmask}")
-            if addr.ptp:
-                print(f"      p2p       : {addr.ptp}")
-
-    # return run_cmd('iwconfig 2>&1 | grep -oP "^\\w+"')
-# .split("\n")[:-1]
-
+# def update_interfaces():
+#
+#
+#     interfaces = run_cmd('iwconfig 2>&1 | grep -oP "^\\w+"').split("\n")[:-1]
+#     for interface in interfaces:
+#         print(interface)
+#         if interface != "lo" and interface != "eth0":
+#             run_cmd(f"ifconfig {interface} up")
+#
+#     if len(Interfaces) == 0:
+#         logging.info("Scanning for interfaces.")
+#         restart_network_manager()
+#         update_interfaces()
+#     else:
+#         print(i for i in Interfaces)
