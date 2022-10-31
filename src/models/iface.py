@@ -3,6 +3,9 @@ import socket
 import psutil
 from psutil._common import snicstats, snetio, bytes2human
 
+# -------------------------------------------------Interface Init Data--------------------------------------------------
+# --------------------------------------------------------Begin---------------------------------------------------------
+
 address_family_map = {
     socket.AF_INET: 'IPv4',
     socket.AF_INET6: 'IPv6',
@@ -33,14 +36,21 @@ def nic_in(nic, stat_type: dict[str, snicstats] or snetio) -> bool:
     return nic in stat_type
 
 
-class Interface:
+# -------------------------------------------------Interface Init Data--------------------------------------------------
+# ---------------------------------------------------------End----------------------------------------------------------
+
+
+# ---------------------------------------------------Interface Class----------------------------------------------------
+# --------------------------------------------------------Begin---------------------------------------------------------
+
+class Iface:
+    # the __init__() is the method used to create the Iface object
     def __init__(self, nic, addrs, stats, io_counter):
         self.nic = nic
         self.addrs = addrs
         self.stats = stats
         self.io_counter = io_counter
         if stats:
-            print(stats)
             self.speed = stats.speed
             self.duplex = duplex_type_map[stats.duplex]
             self.mtu = stats.mtu
@@ -63,9 +73,30 @@ class Interface:
             self.netmask = addr.netmask
             self.p2p = addr.ptp
 
-    def print_stats(self):
+    # extremely critical note:
+    # if you store a bunch of these Iface objects in a list
+    # you can't use a for loop to iterate the list of objects out-of-the-box when you create a new class
+    # you must include both __iter__() and __next__() methods
+    # even still to iterate through a list of these objects you must use the syntax as shown in example:
+    #
+    # (this code should be placed where you want to create the object such as an attribute in the Network Class)
+    # i = iter(ifaces())  <= here notice the iter() method this is a for loop
+    # print((next(i)))    <= next is the the current object in the for loop runs, which is being printed
+
+    def __iter__(self):
+        return self
+
+    def __next__(self):
+        if not (self.nic and self.addrs):
+            raise StopIteration
+        return self
+
+    # this method overrides the objects print method and can be called as shown in example:
+    # either by directly using print(Iface) on the Iface object or
+    # when used with the iter() method it can be used with print(next(Iface))
+    def __repr__(self):
         up, er, es = True if self.is_up else False, self.err_receiving, self.err_sending
-        print(
+        return repr(
             f"""
                 stats          : speed={self.speed}MB, duplex={self.duplex}, mtu={self.mtu}, up={up}
                 incoming       : bytes={self.b_received}, pkts={self.p_received}, errs={er}, drops={self.drops_in}
@@ -74,17 +105,23 @@ class Interface:
                     broadcast : {self.broadcast}
                     netmask   : {self.netmask}
                     p2p       : {self.p2p}
-            """)
+            """
+        )
 
 
-def get_interfaces():
+# ---------------------------------------------------Interface Class----------------------------------------------------
+# ---------------------------------------------------------End----------------------------------------------------------
+
+# creates a list of Iface objects for the interfaces that are discovered on the network
+# retrieves statistics about all nics and i/o data, which is filtered into each Iface object during creation
+def ifaces():
     nics, stats, io_counters, st, io = get_nics(), nic_stats(), io_stats(), None, None
-    ifaces = []
-    for nic, addrs in nics:
-        print(nic, addrs)
+    i_lst = []
+    for nic, addrs in nics.items():
         if nic_in(nic, stats):
             st = stats[nic]
         if nic_in(nic, io_counters):
             io = io_counters[nic]
-    #         ifaces.append(Interface(nic, addrs, st, io))
-    # return ifaces
+        iface = Iface(nic, addrs, st, io)
+        i_lst.append(iface)
+    return i_lst

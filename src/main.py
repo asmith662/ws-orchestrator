@@ -3,7 +3,7 @@ import logging
 import os.path
 from logging.handlers import RotatingFileHandler
 
-from src.models.interface import get_interfaces
+from src.models.iface import ifaces
 from src.models.network import Network
 
 """
@@ -39,9 +39,8 @@ async def main():
         # print(run_cmd(input(' enter cmd: \n'), input(' sudo password: \n')))
         # o, e = run_cmd('iwconfig', 'Af4Tf2Dp!')
         # run_cmd('iwconfig 2>&1 | grep -oP "^\\w+"', 'Af4Tf2Dp!')
-
-        for i in get_interfaces():
-            print(i)
+        i = iter(ifaces())
+        print((next(i)))
 
 
 asyncio.run(main())

@@ -2,11 +2,7 @@
 import logging
 import re
 
-import psutil
-from psutil._common import snicstats, snetio
-
 from src.models.cmd.cmd import run_cmd
-from src.models.interface import get_interfaces
 
 # Global Arguments
 DO_NOT_KILL = False
@@ -15,7 +11,8 @@ DO_NOT_KILL = False
 class Network:
 
     def __init__(self):
-        self.interfaces = get_interfaces()
+        pass
+        # self.interfaces = ifaces()
 
 
 def check_monitor_mode(interface):
