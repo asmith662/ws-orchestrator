@@ -36,6 +36,10 @@ def nic_in(nic, stat_type: dict[str, snicstats] or snetio) -> bool:
     return nic in stat_type
 
 
+def get_data(data, *args) -> tuple or None:
+    return tuple(args) if data else None
+
+
 # -------------------------------------------------Interface Init Data--------------------------------------------------
 # ---------------------------------------------------------End----------------------------------------------------------
 
@@ -49,35 +53,51 @@ def repr_helper(addr):
     return f'{lb}"{af}","{ip}","{b}","{n}","{p2p}"{rb}'
 
 
+class Istats:
+    def __init__(self, stats):
+        args = stats.speed, duplex_type_map[stats.duplex], stats.mtu, True if stats.isup else False
+        self.speed, self.duplex, self.mtu, self.is_up = get_data(stats, *args)
+
+    def __iter__(self):
+        return self
+
+    def __next__(self):
+        return self
+
+
+class IOstats:
+    def __init__(self, io_counters):
+        args = bytes2human(io_counters.bytes_recv), bytes2human(io_counters.bytes_sent), io_counters.packets_recv, \
+               io_counters.packets_sent, io_counters.errin, io_counters.errout, io_counters.dropin, io_counters.dropout
+        self.b_received, self.b_sent, self.p_received, self.p_sent, self.s_errs, self.r_errs, self.i_drops, \
+            self.o_drops = get_data(io_counters, *args)
+
+    def __iter__(self):
+        return self
+
+    def __next__(self):
+        return self
+
+
+class Iaddr:
+    def __init__(self, addr):
+        args = address_family_map.get(addr.family, addr.family), addr.address, addr.broadcast, addr.netmask, addr.ptp
+        self.addrs_family, self.ip_addrs, self.broadcast, self.netmask, self.p2p = get_data(addr, *args)
+
+    def __iter__(self):
+        return self
+
+    def __next__(self):
+        return self
+
+
 class Iface:
     # the __init__() is the method used to create the Iface object
     def __init__(self, iface, addrs, stats, io_counter):
         self.iface = iface
-        if stats:
-            self.speed = stats.speed
-            self.duplex = duplex_type_map[stats.duplex]
-            self.mtu = stats.mtu
-            self.is_up = True if stats.isup else False
-            self.stats = [self.speed, self.duplex, self.mtu, self.is_up]
-        if io_counter:
-            # b = bytes
-            self.b_received = bytes2human(io_counter.bytes_recv)
-            self.b_sent = bytes2human(io_counter.bytes_sent)
-            # p = packets
-            self.p_received = io_counter.packets_recv
-            self.p_sent = io_counter.packets_sent
-            self.receiving_errs = io_counter.errin
-            self.sending_errs = io_counter.errout
-            self.in_drops = io_counter.dropin
-            self.out_drops = io_counter.dropout
-            self.io_counter = [self.b_received, self.b_sent, self.p_received, self.p_sent, self.receiving_errs,
-                               self.sending_errs, self.in_drops, self.out_drops]
-        self.addrs = [for addr in addrs]:
-            self.addrs_family = address_family_map.get(addr.family, addr.family)
-            self.ip_addrs = addr.ip_addrs
-            self.broadcast = addr.broadcast
-            self.netmask = addr.netmask
-            self.p2p = addr.ptp
+        self.istats = Istats(stats)
+        self.iostats = IOstats(io_counter)
+        self.addrs = [Iaddr(addr) for addr in addrs]
 
     # extremely critical note:
     # if you store a bunch of these Iface objects in a list
@@ -100,88 +120,68 @@ class Iface:
     # this method overrides the objects print method and can be called as shown in example:
     # either by directly using print(Iface) on the Iface object or
     # when used with the iter() method it can be used with print(next(Iface))
-    def __str__(self):
-        up, er, es = True if self.is_up else False, self.receiving_errs, self.sending_errs
-        return \
-            f"""
-                stats          : speed={self.speed}MB, duplex={self.duplex}, mtu={self.mtu}, up={up}
-                incoming       : bytes={self.b_received}, pkts={self.p_received}, errs={er}, drops={self.in_drops}
-                outgoing       : bytes={self.b_sent}, pkts={self.p_sent}, errs={es}, drops={self.out_drops}
-                {self.addrs_family} address   : {self.ip_addrs}
-                    broadcast : {self.broadcast}
-                    netmask   : {self.netmask}
-                    p2p       : {self.p2p}
-            """
+    # def __str__(self):
+    #     up, er, es = True if self.is_up else False, self.receiving_errs, self.sending_errs
+    #     return \
+    #         f"""
+    #             stats          : speed={self.speed}MB, duplex={self.duplex}, mtu={self.mtu}, up={up}
+    #             incoming       : bytes={self.b_received}, pkts={self.p_received}, errs={er}, drops={self.in_drops}
+    #             outgoing       : bytes={self.b_sent}, pkts={self.p_sent}, errs={es}, drops={self.out_drops}
+    #             {self.addrs_family} address   : {self.ip_addrs}
+    #                 broadcast : {self.broadcast}
+    #                 netmask   : {self.netmask}
+    #                 p2p       : {self.p2p}
+    #         """
 
-    def __repr__(self):
-        lb, rb, lsb, rsb = '(', ')', '[', ']'
-        speed, duplex, mtu, is_up, b_received, b_sent, p_received, p_sent, s_errs, r_errs, in_drops, out_drops = get_data(self)
-        addrs = ','.join([repr_helper(a) for a in addr_dict_lst(self)])
+    # def __repr__(self): lb, rb, lsb, rsb = '(', ')', '[', ']' speed, duplex, mtu, is_up, b_received, b_sent,
+    # p_received, p_sent, s_errs, r_errs, in_drops, out_drops = get_data( self) addrs = ','.join([repr_helper(a) for
+    # a in addr_dict_lst(self)])
+    #
+    #     return repr(f'Iface("{self.iface}",' +
+    #                 f'{lb}"{speed}","{duplex}","{mtu}","{is_up}"{rb},' +
+    #                 f'{lb}"{b_received}","{p_received}","{r_errs}","{in_drops}"{rb},' +
+    #                 f'{lb}"{b_sent}","{p_sent}","{s_errs}","{out_drops}"{rb},' +
+    #                 f'{lsb}{addrs}{rsb})'
+    #                 )
 
-        return repr(f'Iface("{self.iface}",' +
-                    f'{lb}"{speed}","{duplex}","{mtu}","{is_up}"{rb},' +
-                    f'{lb}"{b_received}","{p_received}","{r_errs}","{in_drops}"{rb},' +
-                    f'{lb}"{b_sent}","{p_sent}","{s_errs}","{out_drops}"{rb},' +
-                    f'{lsb}{addrs}{rsb})'
-                    )
+    # def to_dict(self): speed, duplex, mtu, is_up, b_received, b_sent, p_received, p_sent, s_errs, r_errs, in_drops,
+    # out_drops = get_data( self) return { 'iface': self.iface, 'stats': { 'speed': speed, 'duplex': duplex,
+    # 'mtu': mtu, 'is_up': is_up }, 'incoming': { 'bytes_received': b_received, 'packets_received': p_received,
+    # 'receiving_errors': r_errs, 'incoming_drops': in_drops }, 'outgoing': { 'bytes_sent': b_sent, 'packets_sent':
+    # p_sent, 'sending_errors': s_errs, 'outgoing_drops': out_drops }, 'addrs': addr_lst() }
 
-    def to_dict(self):
-        speed, duplex, mtu, is_up, b_received, b_sent, p_received, p_sent, s_errs, r_errs, in_drops, out_drops = get_data(self)
-        return {
-            'iface': self.iface,
-            'stats': {
-                'speed': speed,
-                'duplex': duplex,
-                'mtu': mtu,
-                'is_up': is_up
-            },
-            'incoming': {
-                'bytes_received': b_received,
-                'packets_received': p_received,
-                'receiving_errors': r_errs,
-                'incoming_drops': in_drops
-            },
-            'outgoing': {
-                'bytes_sent': b_sent,
-                'packets_sent': p_sent,
-                'sending_errors': s_errs,
-                'outgoing_drops': out_drops
-            },
-            'addrs': addr_lst()
-        }
-
-    def get_data(self):
-        if self.stats:
-            speed, duplex, mtu, is_up = self.speed, self.duplex, self.mtu, self.is_up
-        else:
-            speed, duplex, mtu, is_up = (None for i in range(3))
-        if self.io_counter:
-            b_received, b_sent, p_received, p_sent = self.b_received, self.b_sent, self.p_received, self.p_sent
-            s_errs, r_errs, i_drops, o_drops = self.sending_errs, self.receiving_errs, self.in_drops, self.out_drops
-
-        else:
-            b_received, b_sent, p_received, p_sent, s_errs, r_errs, i_drops, o_drops = (None for i in range(7))
-        return speed, duplex, mtu, is_up, b_received, b_sent, p_received, p_sent, s_errs, r_errs, i_drops, o_drops
-
-    def addr_dict_lst(self):
-        return [
-            {
-                'address_family': self.addrs_family,
-                'ip_address': self.ip_addrs,
-                'broadcast': self.broadcast,
-                'netmask': self.netmask,
-                'p2p': self.p2p
-            }
-            for a in self.addrs
-        ]
-
-    def set_addrs(self):
-        for addr in self.addrs:
-            self.addrs_family = address_family_map.get(addr.family, addr.family)
-            self.ip_addrs = addr.ip_addrs
-            self.broadcast = addr.broadcast
-            self.netmask = addr.netmask
-            self.p2p = addr.ptp
+    # def get_data(self):
+    #     if self.stats:
+    #         speed, duplex, mtu, is_up = self.speed, self.duplex, self.mtu, self.is_up
+    #     else:
+    #         speed, duplex, mtu, is_up = (None for i in range(3))
+    #     if self.io_counter:
+    #         b_received, b_sent, p_received, p_sent = self.b_received, self.b_sent, self.p_received, self.p_sent
+    #         s_errs, r_errs, i_drops, o_drops = self.sending_errs, self.receiving_errs, self.in_drops, self.out_drops
+    #
+    #     else:
+    #         b_received, b_sent, p_received, p_sent, s_errs, r_errs, i_drops, o_drops = (None for i in range(7))
+    #     return speed, duplex, mtu, is_up, b_received, b_sent, p_received, p_sent, s_errs, r_errs, i_drops, o_drops
+    #
+    # def addr_dict_lst(self):
+    #     return [
+    #         {
+    #             'address_family': self.addrs_family,
+    #             'ip_address': self.ip_addrs,
+    #             'broadcast': self.broadcast,
+    #             'netmask': self.netmask,
+    #             'p2p': self.p2p
+    #         }
+    #         for a in self.addrs
+    #     ]
+    #
+    # def set_addrs(self):
+    #     for addr in self.addrs:
+    #         self.addrs_family = address_family_map.get(addr.family, addr.family)
+    #         self.ip_addrs = addr.ip_addrs
+    #         self.broadcast = addr.broadcast
+    #         self.netmask = addr.netmask
+    #         self.p2p = addr.ptp
 
 
 # ---------------------------------------------------Interface Class----------------------------------------------------
