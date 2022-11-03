@@ -53,7 +53,7 @@ def repr_helper(addr):
     return f'{lb}"{af}","{ip}","{b}","{n}","{p2p}"{rb}'
 
 
-class Istats:
+class IfaceStat:
     def __init__(self, stats):
         args = stats.speed, duplex_type_map[stats.duplex], stats.mtu, True if stats.isup else False
         self.speed, self.duplex, self.mtu, self.is_up = get_data(stats, *args)
@@ -65,7 +65,7 @@ class Istats:
         return self
 
 
-class IOstats:
+class IoStat:
     def __init__(self, io_counters):
         args = bytes2human(io_counters.bytes_recv), bytes2human(io_counters.bytes_sent), io_counters.packets_recv, \
                io_counters.packets_sent, io_counters.errin, io_counters.errout, io_counters.dropin, io_counters.dropout
@@ -79,7 +79,7 @@ class IOstats:
         return self
 
 
-class Iaddr:
+class IfaceAddr:
     def __init__(self, addr):
         args = address_family_map.get(addr.family, addr.family), addr.address, addr.broadcast, addr.netmask, addr.ptp
         self.addrs_family, self.ip_addrs, self.broadcast, self.netmask, self.p2p = get_data(addr, *args)
@@ -95,9 +95,9 @@ class Iface:
     # the __init__() is the method used to create the Iface object
     def __init__(self, iface, addrs, stats, io_counter):
         self.iface = iface
-        self.istats = Istats(stats)
-        self.iostats = IOstats(io_counter)
-        self.addrs = [Iaddr(addr) for addr in addrs]
+        self.istats = IfaceStat(stats)
+        self.iostats = IoStat(io_counter)
+        self.addrs = [IfaceAddr(addr) for addr in addrs]
 
     # extremely critical note:
     # if you store a bunch of these Iface objects in a list
