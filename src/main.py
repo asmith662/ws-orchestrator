@@ -4,6 +4,7 @@ import os.path
 from logging.handlers import RotatingFileHandler
 
 from src.models.iface import ifaces
+from src.models.indent import Indent
 from src.models.network import Network
 
 """
@@ -39,12 +40,15 @@ async def main():
         # print(run_cmd(input(' enter cmd: \n'), input(' sudo password: \n')))
         # o, e = run_cmd('iwconfig', 'Af4Tf2Dp!')
         # run_cmd('iwconfig 2>&1 | grep -oP "^\\w+"', 'Af4Tf2Dp!')
-        i_faces = ifaces()
-        for i in i_faces:
-            print(i.istats.mtu)
+        # i_faces = ifaces()
+        # for i in i_faces:
+        #     print(i)
         # i_face = iter(ifaces())
         # i = next(i_face).to_dict()
         # print(i)
+        txt = 'test'
+        test = Indent(txt, 1)
+        print(test)
 
 
 asyncio.run(main())
