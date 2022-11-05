@@ -30,6 +30,6 @@ class IOStat:
 
     def __str__(self):
         spacer = '       : bytes='
-        i = f'incoming{spacer}{self.bytes_recv}, pkts={self.packets_recv}, errs={self.errout}, drops={self.dropin}'
-        o = f'outgoing{spacer}{self.bytes_sent}, pkts={self.packets_sent}, errs={self.errin}, drops={self.dropout}'
+        i = f'incoming{spacer}: bytes={self.bytes_recv}, pkts={self.packets_recv}, errs={self.errout}, drops={self.dropin}'
+        o = f'outgoing{spacer}: bytes={self.bytes_sent}, pkts={self.packets_sent}, errs={self.errin}, drops={self.dropout}'
         return Fmt.m(Fmt.tab(i, 1), Fmt.t(o, 1))
