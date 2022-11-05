@@ -2,8 +2,6 @@
 import logging
 import re
 
-from src.models.cmd.cmd import run_cmd
-
 # Global Arguments
 DO_NOT_KILL = False
 
@@ -91,6 +89,9 @@ def scan_networks():
 
         networks.append(splitted_record)
     return networks
+
+
+
 
 # def get_interfaces():
 #     return [NetInterface(n, a, nic_stats(), io_stats()) for n, a in get_nics().items()]

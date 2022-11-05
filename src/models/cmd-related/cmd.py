@@ -1,8 +1,25 @@
 import logging
 import subprocess
+import uuid
 from typing import Tuple
 
-from src.models.password import Password, pwd_check
+from src.models.auth import Password, pwd_check
+
+
+class Executor:
+    def run(self):
+        """Abstract method to run command"""
+
+
+class Option:
+    def __init__(self, cmd):
+        self.sudo_cmd = True if 'sudo' in cmd else False
+        self.cmd = cmd
+
+
+class Cmd(Option):
+    def __init__(self, cmd):
+        super().__init__(cmd)
 
 
 # Wrapper for all cmds
@@ -21,24 +38,25 @@ def is_sudo_cmd(cmd: str) -> bool:
     return 'sudo' in cmd
 
 
-def run_cmd(cmd1: [str], pwd: str = Password) -> None:
-    pwd = pwd_check(pwd)
-    s1 = sudo(cmd1)
-    print(s1)
-    p1 = subprocess.Popen(s1, stderr=subprocess.STDOUT, stdout=subprocess.PIPE, stdin=subprocess.PIPE,)
+def run_cmd(cmd: [str], pwd: str = Password, sudo_cmd: bool = True) -> tuple[bytes, bytes]:
+    pwd = pwd if not sudo_cmd else pwd_check(pwd)
+    cmd = cmd if not sudo_cmd else sudo(cmd)
+    print(cmd)
+    p1 = subprocess.Popen(cmd, stderr=subprocess.STDOUT, stdout=subprocess.PIPE, stdin=subprocess.PIPE, ) \
+        if sudo_cmd else subprocess.Popen(cmd, stderr=subprocess.STDOUT, stdout=subprocess.PIPE)
     e1 = None
     try:
-        o1, e1 = p1.communicate(input=pwd.encode())
-        print(o1.decode(), e1.decode())
+        return p1.communicate(input=pwd.encode()) if sudo_cmd else p1.communicate()
+        # print(o1.decode(), e1.decode())
     except Exception as e:
-        kill(p1, e, ' '.join(s1), e1)
+        kill(p1, e, ' '.join(cmd), e1)
 
 
 def run_cmd2(cmd1: [str], cmd2: [str] or None, pwd: str = Password) -> None:
     pwd = pwd_check(pwd)
     s1, s2 = sudo(cmd1), sudo(cmd2)
     print(s1, s2)
-    p1 = subprocess.Popen(s1, stderr=subprocess.STDOUT, stdout=subprocess.PIPE, stdin=subprocess.PIPE,)
+    p1 = subprocess.Popen(s1, stderr=subprocess.STDOUT, stdout=subprocess.PIPE, stdin=subprocess.PIPE, )
     p2 = subprocess.Popen(s2, stdout=subprocess.PIPE, stdin=p1.stdout, )
     e1, e2 = None, None
     try:
@@ -101,39 +119,39 @@ def kill(process: subprocess.Popen, exception: Exception, cmd: str, stderr: byte
 #         return 'Error Message:' + process.stderr.decode()
 #
 #
-# async def run_cmd(cmd: str, args: str, input_data: str = None) -> str or None:
+# async def run_cmd(cmd-related: str, args: str, input_data: str = None) -> str or None:
 #     if not input_data:
-#         process = run([cmd, args], capture_output=True)
+#         process = run([cmd-related, args], capture_output=True)
 #     else:
-#         process = run([cmd, args], capture_output=True, input=input_data.encode())
+#         process = run([cmd-related, args], capture_output=True, input=input_data.encode())
 #     return check_return_code(process)
 #
 #
-# async def run_shell_cmd(cmd: str) -> str:
-#     return check_return_code(run(cmd, shell=True))
+# async def run_shell_cmd(cmd-related: str) -> str:
+#     return check_return_code(run(cmd-related, shell=True))
 #
-# def format_cmd(cmd: str, pwd: str = None) -> tuple:
-#     args = cmd.split()
+# def format_cmd(cmd-related: str, pwd: str = None) -> tuple:
+#     args = cmd-related.split()
 #     kwargs = dict(stdout=subprocess.PIPE, encoding="ascii")
 #     if pwd and can_sudo():
 #         kwargs.update(input=pwd)
 #     return args, kwargs,
 #
 #
-# def get_cmd(cmd: str, pwd: str = None) -> tuple:
-#     if is_sudo_cmd(cmd):
+# def get_cmd(cmd-related: str, pwd: str = None) -> tuple:
+#     if is_sudo_cmd(cmd-related):
 #         root = os.geteuid() == 0
 #         if not (root and pwd):
 #             pwd = pwd_prompt()
-#             return format_cmd(cmd, pwd)
+#             return format_cmd(cmd-related, pwd)
 #         else:
 #             if DONT_ASK_TO_SAVE_PASSWORD:
-#                 return format_cmd(cmd, pwd)
+#                 return format_cmd(cmd-related, pwd)
 #             elif can_sudo(pwd):
-#                 return format_cmd(cmd, pwd)
+#                 return format_cmd(cmd-related, pwd)
 #     else:
-#         return format_cmd(cmd)
+#         return format_cmd(cmd-related)
 #
 #
-# def run_cmd(cmd: str, pwd: str = None):
-#     return f"echo {pwd} | sudo -S {cmd}"
+# def run_cmd(cmd-related: str, pwd: str = None):
+#     return f"echo {pwd} | sudo -S {cmd-related}"
