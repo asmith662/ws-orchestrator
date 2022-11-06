@@ -67,7 +67,7 @@ def pwd_prompt():
 
 def save_prompt(pwd) -> None:
     global Password, PASSWORD_SAVED
-    save = input('Save password for future cmd-related that require sudo? \'y\' | \'n\'\n')
+    save = input('Save password for future command that require sudo? \'y\' | \'n\'\n')
     if save == 'y' or save == 'n':
         if save == 'y':
             if PASSWORD_SAVED:
