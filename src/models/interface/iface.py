@@ -23,27 +23,14 @@ class Iface:
     #
     def __init__(self, nic: str, addrs: list[snicaddr], nstat: dict[str, snicstats] = None,
                  iostat: snetio = None):
-        self.refresh(self, nic, addrs, nstat, iostat)
         self.speed, self.duplex, self.mtu, self.isup, self.bytes_recv, self.bytes_sent, self.packets_recv, \
-        self.packets_sent, self.errin, self.errout, self.dropin, self.dropout, self.addrs \
-            = None, None, None, None, None, None, None, None, None, None, None, None, None
+            self.packets_sent, self.errin, self.errout, self.dropin, self.dropout = [None] * 12
         self.nic = nic
+        self.addrs = [IAddr(addr) for addr in addrs]
         if nstat:
-            self.speed = nstat
-            self.duplex = self.set_duplex_type(nstat['2'])
-            self.mtu = nstat['3']
-            self.isup = True if nstat['4'] else False
+            self.set_nstat(nstat)
         if iostat:
-            self.bytes_recv = bytes2human(iostat.bytes_recv)
-            self.bytes_sent = bytes2human(iostat.bytes_sent)
-            self.packets_recv = iostat.packets_recv
-            self.packets_sent = iostat.packets_sent
-            self.errin = iostat.errin
-            self.errout = iostat.errout
-            self.dropin = iostat.dropin
-            self.dropout = iostat.dropout
-        if addrs:
-            self.addrs = [IAddr(addr) for addr in addrs]
+            self.set_iostat(iostat)
 
     def __repr__(self):
         return repr(f'Iface("{self.nic}",{self.speed},"{self.duplex}"]",{self.mtu},{self.isup},{self.bytes_recv},'
@@ -58,18 +45,18 @@ class Iface:
             raise StopIteration
         return self
 
-    def __str__(self):
-        s = 'stats' + Fmt.t(f': speed={self.speed}MB, duplex={self.duplex}, mtu={self.mtu}, up={self.isup}', 2)
-        i = f'incoming' + \
-            Fmt.t(f': bytes={self.bytes_recv}, pkts={self.packets_recv}, errs={self.errout}, drops={self.dropin}')
-        o = f'outgoing' + \
-            Fmt.t(f': bytes={self.bytes_sent}, pkts={self.packets_sent}, errs={self.errin}, drops={self.dropout}')
-        for a in self.addrs:
-            addr = Fmt.t(f'{self.a.family} address   : {self.address}', 1)
-            broadcast = Fmt.t(f'broadcast : {self.broadcast}', 3)
-            netmask = Fmt.t(f'netmask : {self.netmask}', 3)
-            p2p = Fmt.t(f'p2p : {self.p2p}', 3)
-        return Fmt.m(self.nic, Fmt.t(s, 1), Fmt.t(i, 1), Fmt.t(o, 1), Fmt.t(self.addrs, 1))
+    # def __str__(self):
+    #     s = 'stats' + Fmt.t(f': speed={self.speed}MB, duplex={self.duplex}, mtu={self.mtu}, up={self.isup}', 2)
+    #     i = f'incoming' + \
+    #         Fmt.t(f': bytes={self.bytes_recv}, pkts={self.packets_recv}, errs={self.errout}, drops={self.dropin}')
+    #     o = f'outgoing' + \
+    #         Fmt.t(f': bytes={self.bytes_sent}, pkts={self.packets_sent}, errs={self.errin}, drops={self.dropout}')
+    #     # for a in self.addrs:
+    #     #     addr = Fmt.t(f'{self.addrs.} address   : {self.address}', 1)
+    #     #     broadcast = Fmt.t(f'broadcast : {self.broadcast}', 3)
+    #     #     netmask = Fmt.t(f'netmask : {self.netmask}', 3)
+    #     #     p2p = Fmt.t(f'p2p : {self.p2p}', 3)
+    #     return Fmt.m(self.nic, Fmt.t(s, 1), Fmt.t(i, 1), Fmt.t(o, 1), Fmt.t(self.addrs, 1))
 
     @classmethod
     def set_duplex_type(cls, duplex):
@@ -79,12 +66,24 @@ class Iface:
     def set_addrs_family(cls, key, val):
         return cls.address_family_map.get(key, val)
 
-    @classmethod
-    def create_addrs_dict(cls, addrs):
-        for a in addrs:
-            pass
+    def set_nstat(self, nstat: dict[str, snicstats]):
+        if self.nic in nstat:
+            s = nstat[self.nic]
+            self.speed = s.speed
+            self.duplex = self.set_duplex_type(s.duplex)
+            self.mtu = s.mtu
+            self.isup = True if s.isup else False
 
-
+    def set_iostat(self, iostat: snetio):
+        if self.nic in iostat:
+            self.bytes_recv = bytes2human(iostat.bytes_recv)
+            self.bytes_sent = bytes2human(iostat.bytes_sent)
+            self.packets_recv = iostat.packets_recv
+            self.packets_sent = iostat.packets_sent
+            self.errin = iostat.errin
+            self.errout = iostat.errout
+            self.dropin = iostat.dropin
+            self.dropout = iostat.dropout
 
     @staticmethod
     def _get() -> list[tuple[str, list[snicaddr], Optional[snicstats], Optional[snicstats]]]:
@@ -101,38 +100,37 @@ class Iface:
     def exists(stat: dict[str, snicstats] or snetio) -> bool:
         return bool(stat)
 
-    def refresh(self):
-        for _ in self._get():
-            if self.nic == _[1]:
-                nic, addrs, nstat, iostat = _
-                self.speed, self.duplex, self.mtu, self.isup, self.bytes_recv, self.bytes_sent, self.packets_recv, \
-                self.packets_sent, self.errin, self.errout, self.dropin, self.dropout = [None] * 12
-                if self.exists(nstat):
-                    self.speed = nstat[int('1')]
-                    self.duplex = self.set_duplex_type(nstat[int('2')])
-                    self.mtu = nstat[int('3')]
-                    self.isup = True if nstat[int('4')] else False
-                if self.exists(iostat):
-                    self.bytes_recv = bytes2human(iostat.bytes_recv)
-                    self.bytes_sent = bytes2human(iostat.bytes_sent)
-                    self.packets_recv = iostat.packets_recv
-                    self.packets_sent = iostat.packets_sent
-                    self.errin = iostat.errin
-                    self.errout = iostat.errout
-                    self.dropin = iostat.dropin
-                    self.dropout = iostat.dropout
-                self.addrs = [IAddr(addr) for addr in addrs]
+    # def refresh(self):
+    #     for _ in self._get():
+    #         if self.nic == _[1]:
+    #             nic, addrs, nstat, iostat = _
+    #             self.speed, self.duplex, self.mtu, self.isup, self.bytes_recv, self.bytes_sent, self.packets_recv, \
+    #             self.packets_sent, self.errin, self.errout, self.dropin, self.dropout = [None] * 12
+    #             if self.exists(nstat):
+    #                 self.speed = nstat[int('1')]
+    #                 self.duplex = self.set_duplex_type(nstat[int('2')])
+    #                 self.mtu = nstat[int('3')]
+    #                 self.isup = True if nstat[int('4')] else False
+    #             if self.exists(iostat):
+    #                 self.bytes_recv = bytes2human(iostat.bytes_recv)
+    #                 self.bytes_sent = bytes2human(iostat.bytes_sent)
+    #                 self.packets_recv = iostat.packets_recv
+    #                 self.packets_sent = iostat.packets_sent
+    #                 self.errin = iostat.errin
+    #                 self.errout = iostat.errout
+    #                 self.dropin = iostat.dropin
+    #                 self.dropout = iostat.dropout
+    #             self.addrs = [IAddr(addr) for addr in addrs]
 
-
-def interfaces() -> list[Iface]:
-    nstats, iostats, nstat, iostat = psutil.net_if_stats(), psutil.net_io_counters(pernic=True), None, None
-    nics_addrs = psutil.net_if_addrs()
-    ifaces = []
-    for nic, addrs in nics_addrs.items():
-        nstat = n if (n := nstats[nic]) else None
-        iostat = io if (io := nstats[nic]) else None
-        ifaces.append(Iface(nic, addrs, nstat, iostat))
-    return ifaces
-
-
-def
+# def interfaces() -> list[Iface]:
+#     nstats, iostats, nstat, iostat = psutil.net_if_stats(), psutil.net_io_counters(pernic=True), None, None
+#     nics_addrs = psutil.net_if_addrs()
+#     ifaces = []
+#     for nic, addrs in nics_addrs.items():
+#         nstat = n if (n := nstats[nic]) else None
+#         iostat = io if (io := nstats[nic]) else None
+#         ifaces.append(Iface(nic, addrs, nstat, iostat))
+#     return ifaces
+#
+#
+# def
