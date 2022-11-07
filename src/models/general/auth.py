@@ -11,10 +11,15 @@ class Auth:
     try_map = ['First', 'Second', 'Third', 'Fourth', 'Fifth']
     users = Users().users
 
-    def __init__(self, pwd=None):
+    def __init__(self, pwd=None, strict=False):
         self.user = self._user()
         if self.user:
             self.username = self.user.name
+            if pwd:
+                if self._can_sudo(pwd):
+                    self.pwd = pwd
+                else:
+                    self._pwd_prompt(strict)
             if not pwd and self.user.isroot:
                 self.pwd = None
             elif pwd and self._can_sudo(pwd)
@@ -38,17 +43,32 @@ class Auth:
             print(e), logging.warning(e), sys.exit()
 
     @classmethod
-    def _log_pwd_fail(cls, username, tries):
-        logging.warning(f'{cls.try_map[tries]} failed password attempt for {username}')
-        tries += 1
-        return tries
-
-    @classmethod
     def _can_sudo(cls, pwd):
         kwargs = dict(stdout=subprocess.PIPE, encoding="ascii")
         if pwd:
             kwargs.update(input=pwd)
         return True if "confirmed" in str(subprocess.run(f"sudo -S echo confirmed".split(), **kwargs).stdout) else False
+
+    @classmethod
+    def _pwd_prompt(cls, username, strict) -> str:
+        attempts = 5 if not strict else 3
+        while not attempts == 0:
+            pwd = input(f'Enter password for {username}:    ')
+            if cls._can_sudo(pwd):
+                logging.info(f'{username} is now authenticated.')
+                return pwd
+            else:
+                attempts -= 1
+                logging.warning(f'{cls.try_map[attempts]} failed password attempt for {username}')
+        logging.warning(f'Too many failed password attempts for {username}.  Sending shutdown signal..'), sys.exit()
+
+    @classmethod
+    def _log_pwd_fail(cls, username, tries):
+        logging.warning(f'{cls.try_map[tries]} failed password attempt for {username}')
+        tries += 1
+        return tries
+
+
 
 
 
