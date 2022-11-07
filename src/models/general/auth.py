@@ -9,11 +9,18 @@ from src.models.general.users import User, Users
 
 class Auth:
     try_map = ['First', 'Second', 'Third', 'Fourth', 'Fifth']
+    users = Users().users
 
-    def __init__(self, username=None, password=None):
-        self.users = Users().users
-        self.username = self._user()
-        self.password = None
+    def __init__(self, pwd=None):
+        self.user = self._user()
+        if self.user:
+            self.username = self.user.name
+            if not pwd and self.user.isroot:
+                self.pwd = None
+            elif pwd and self._can_sudo(pwd)
+            else:
+                self.pwd = self.
+        self.pwd = None
 
     def __repr__(self):
         return repr(f'Auth({self.users}')
@@ -22,16 +29,29 @@ class Auth:
         pass
 
     @classmethod
-    def _fail_log(cls, username, tries):
+    def _user(cls) -> User:
+        u = os.getlogin()
+        if u in cls.users[u]:
+            return cls.users[u]
+        else:
+            e = Exception('USER_NOT_FOUND')
+            print(e), logging.warning(e), sys.exit()
+
+    @classmethod
+    def _log_pwd_fail(cls, username, tries):
         logging.warning(f'{cls.try_map[tries]} failed password attempt for {username}')
         tries += 1
         return tries
 
-    def update_users(self):
-        self.users = Users().users
+    @classmethod
+    def _can_sudo(cls, pwd):
+        kwargs = dict(stdout=subprocess.PIPE, encoding="ascii")
+        if pwd:
+            kwargs.update(input=pwd)
+        return True if "confirmed" in str(subprocess.run(f"sudo -S echo confirmed".split(), **kwargs).stdout) else False
 
-    def get_user(self, user):
-        return user if user in self.users[user] else print('USER_NOT_FOUND') and logging.warning('USER_NOT_FOUND')
+
+
 
 
     def _auth(self, username=None, pwd=None):
@@ -42,9 +62,9 @@ class Auth:
                 pass
 
     def set_creds(self, username, pwd):
-        if self._sudo_check(pwd):
+        if self._can_sudo(pwd):
             self.username = username
-            self.password = pwd
+            self.pwd = pwd
             logging.info(f'{username} is now authenticated.')
             return True
         else:
@@ -53,7 +73,7 @@ class Auth:
 
     def fail_counter(self, username, tries):
         if not self.set_creds(username, input(f'Enter password for {username}:    ')):
-            return self._fail_log(username, tries)
+            return self._log_pwd_fail(username, tries)
 
     def _prompt(self, username, tries):
         while tries != 4:
@@ -69,13 +89,6 @@ class Auth:
             self.fail_counter(username, tries)
             print(f'The password you provided did match the sudoers file.  Please try again..')
             self._prompt(username, tries)
-
-    @classmethod
-    def _sudo_check(cls, pwd):
-        kwargs = dict(stdout=subprocess.PIPE, encoding="ascii")
-        if pwd:
-            kwargs.update(input=pwd)
-        return True if "confirmed" in str(subprocess.run(f"sudo -S echo confirmed".split(), **kwargs).stdout) else False
 
 
 # Global Arguments
