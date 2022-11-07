@@ -9,22 +9,24 @@ from src.models.resources.mixins import Fmt
 class Interfaces:
 
     def __init__(self):
-        self.nstats, self.iostats, self.nics_addrs, self.interfaces = [None] * 4
-        self.refresh()
+        self.interfaces = self._get()
 
     def __iter__(self):
         return self
 
     def __next__(self):
-        if not self.interfaces:
-            raise StopIteration
-        return self
+        for count, interface in enumerate(self.interfaces):
+            if count == len(self.interfaces):
+                raise StopIteration
+            else:
+                return interface
 
-    def refresh(self):
-        self.nstats = psutil.net_if_stats()
-        self.iostats = psutil.net_io_counters(pernic=True)
-        self.nics_addrs = psutil.net_if_addrs()
-        self.interfaces = [Interface(nic, addrs, self.nstats, self.iostats) for nic, addrs in self.nics_addrs.items()]
+    @classmethod
+    def _get(cls):
+        nstats = psutil.net_if_stats()
+        iostats = psutil.net_io_counters(pernic=True)
+        nics_addrs = psutil.net_if_addrs()
+        return [Interface(nic, addrs, nstats, iostats) for nic, addrs in nics_addrs.items()]
 
 
 class Interface:
@@ -40,7 +42,6 @@ class Interface:
         self.nstats = nstats
         self.iostats = iostats
         self._set()
-        print(self)
 
     def __repr__(self):
         return repr(f'Iface("{self.nic}",{self.speed},"{self.duplex}"]",{self.mtu},{self.isup},{self.incoming},'

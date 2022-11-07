@@ -1,7 +1,7 @@
 import logging
 import subprocess
 
-from src.models.authentication.auth import Password, pwd_check
+from src.models.general.auth import Password, pwd_check
 
 
 class Executor:
