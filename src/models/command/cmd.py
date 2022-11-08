@@ -7,6 +7,9 @@ from abc import ABC, abstractmethod
 
 
 class Executor(ABC):
+    cprompt = ["cmd", "/c"]
+    pshell = ["pwsh", "-Command"]
+    bash = ['bash', '-c']
 
     @abstractmethod
     def run(self, cmd):
@@ -19,28 +22,45 @@ class Option:
 
 
 class Cmd(Option):
-    def __init__(self, cmd, timeout=0):
+    def __init__(self, cmd, pwd=None, timeout=None, capture_output=True, encoding='utf-8'):
         super().__init__()
         self.cmd = cmd
+        self.sudo = True if 'sudo' in cmd else False
         self.timeout = timeout
+        self.capture_output = capture_output
+        self.encoding = encoding
+        self.stout = self.run(self.cmd, self._options(pwd))
 
-    def run(self, cmd):
+    @staticmethod
+    def run(cmd, options):
         try:
-            subprocess.run(cmd.split(), timeout=self.timeout)
+            return subprocess.run(cmd.split(), **options).stdout
         except subprocess.CalledProcessError as exc:
-            m = f'Processed failed because it did not return a successful return code. Returned {exc.returncode}\n{exc}'
+            m = f'Process failed due to unsuccessful return code. [{exc.returncode}]\n{exc}'
             logging.warning(m)
         except subprocess.TimeoutExpired as exc:
             logging.warning(f'Process timed out.\n{exc}\nSending shutdown signal..'), sys.exit()
 
+    def _options(self, pwd):
+        if not self.sudo:
+            return dict(timeout=self.timeout, capture_output=self.capture_output, encoding=self.encoding,
+                        stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+        if pwd:
+            return dict(input=pwd, timeout=self.timeout, capture_output=self.capture_output, encoding=self.encoding,
+                        stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+        else:
+            m = f'Missing password for sudo command:\n{self.cmd}\nSending shutdown signal..'
+            print(m), logging.warning(m), sys.exit()
+
 
 class AsyncCmd(Option):
-    def __init__(self, pwd, cmd, timeout=0):
+    def __init__(self, pwd, cmd, timeout=None):
         super().__init__()
         self.cmd = cmd
         self.timeout = timeout
 
-    def run(self, pwd, cmd, search):
+    def run(self, pwd, cmd, regex):
+        monitors, interfaces = [], {}
         proc = None
         try:
             proc = subprocess.Popen(cmd.split(),
@@ -51,7 +71,7 @@ class AsyncCmd(Option):
             if len(line) == 0:
                 continue  # Isn't an empty string
             if line[0] != ' ':  # Doesn't start with space
-                wired_search = re.search('eth[0-9]|em[0-9]|p[1-9]p[1-9]'.encode(), line)
+                wired_search = re.search(rf'{regex}'.encode(), line)
                 if not wired_search:  # Isn't wired
                     iface = line[:line.find(' '.encode())]
                     if 'Mode:Monitor'.encode() in line:
@@ -62,35 +82,13 @@ class AsyncCmd(Option):
                         else:
                             interfaces[iface] = 0
 
-
-# Wrapper for all cmds
-def execute(cmd: str):
-    if is_sudo_cmd(cmd):
-        pass
-    else:
-        pass
-
-
-def sudo(cmd: str) -> list:
-    return ['sudo', '-S'] + cmd.split()
-
-
-def is_sudo_cmd(cmd: str) -> bool:
-    return 'sudo' in cmd
-
-
-def run_cmd(cmd: [str], pwd: str = Password, sudo_cmd: bool = True) -> tuple[bytes, bytes]:
-    pwd = pwd if not sudo_cmd else pwd_check(pwd)
-    cmd = cmd if not sudo_cmd else sudo(cmd)
-    print(cmd)
-    p1 = subprocess.Popen(cmd, stderr=subprocess.STDOUT, stdout=subprocess.PIPE, stdin=subprocess.PIPE, ) \
-        if sudo_cmd else subprocess.Popen(cmd, stderr=subprocess.STDOUT, stdout=subprocess.PIPE)
-    e1 = None
-    try:
-        return p1.communicate(input=pwd.encode()) if sudo_cmd else p1.communicate()
-        # print(o1.decode(), e1.decode())
-    except Exception as e:
-        kill(p1, e, ' '.join(cmd), e1)
+    @staticmethod
+    def kill(process: subprocess.Popen, exception: Exception, cmd: str, stderr: bytes or None) -> None:
+        logging.warning(f"{exception} while running {cmd}")
+        if stderr:
+            logging.warning("stderr:", stderr.decode())
+        logging.warning("Killing process...")
+        process.kill()
 
 
 def run_cmd2(cmd1: [str], cmd2: [str] or None, pwd: str = Password) -> None:
@@ -142,12 +140,7 @@ def stream_cmd(cmd: str, pwd: str = Password):
         kill(p, e, cmd, err)
 
 
-def kill(process: subprocess.Popen, exception: Exception, cmd: str, stderr: bytes or None) -> None:
-    logging.warning(f"{exception} while running {cmd}")
-    if stderr:
-        logging.warning("stderr:", stderr.decode())
-    logging.warning("Killing process...")
-    process.kill()
+
 
 # def with_sudo():
 #     with sh.contrib.sudo:
