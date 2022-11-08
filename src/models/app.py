@@ -1,5 +1,9 @@
+import logging
+
+from src.models.general.auth import Auth
 from src.models.general.config import logger
 from src.models.general.users import Users
+from src.models.network.interfaces import Interfaces
 
 
 class App:
@@ -7,17 +11,14 @@ class App:
         # start logger
         self.logging_enabled = bool(logger())
 
-        # get logged-in users
+        # get users
         self.users = Users()
-        if len(self.users.users) != 1:
-            print(f'Multiple logged on users detected: ' + ', '.join([u.name for u in self.users.users]))
-            prompt = \
-                input()
-        # authentication starts app
-        self.is_authenticated
 
-    # Classmethods -----------------------------------------------------------------------------------------------------
-
-
-    # Methods ----------------------------------------------------------------------------------------------------------
-
+        # authenticate to start app
+        with Auth():
+            self.interfaces = Interfaces().interfaces
+            for i in self.interfaces:
+                if 'wlan0' in i.nic:
+                    is_up = i.isup
+                    if not is_up:
+                        logging.info('')

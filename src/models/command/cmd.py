@@ -1,23 +1,66 @@
 import logging
+import os
+import re
 import subprocess
+import sys
+from abc import ABC, abstractmethod
 
-from src.models.general.auth import Password, pwd_check
 
+class Executor(ABC):
 
-class Executor:
-    def run(self):
+    @abstractmethod
+    def run(self, cmd):
         """Abstract method to run command"""
 
 
 class Option:
-    def __init__(self, cmd):
-        self.sudo_cmd = True if 'sudo' in cmd else False
-        self.cmd = cmd
+    def __init__(self):
+        pass
 
 
 class Cmd(Option):
-    def __init__(self, cmd):
-        super().__init__(cmd)
+    def __init__(self, cmd, timeout=0):
+        super().__init__()
+        self.cmd = cmd
+        self.timeout = timeout
+
+    def run(self, cmd):
+        try:
+            subprocess.run(cmd.split(), timeout=self.timeout)
+        except subprocess.CalledProcessError as exc:
+            m = f'Processed failed because it did not return a successful return code. Returned {exc.returncode}\n{exc}'
+            logging.warning(m)
+        except subprocess.TimeoutExpired as exc:
+            logging.warning(f'Process timed out.\n{exc}\nSending shutdown signal..'), sys.exit()
+
+
+class AsyncCmd(Option):
+    def __init__(self, pwd, cmd, timeout=0):
+        super().__init__()
+        self.cmd = cmd
+        self.timeout = timeout
+
+    def run(self, pwd, cmd, search):
+        proc = None
+        try:
+            proc = subprocess.Popen(cmd.split(),
+                                    stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=open(os.devnull, 'w'))
+        except OSError:
+            logging.warning(f'Could not execute:\n"{self.cmd}"\nSending shutdown signal..')
+        for line in proc.communicate(pwd.encode())[0].split('\n'.encode()):
+            if len(line) == 0:
+                continue  # Isn't an empty string
+            if line[0] != ' ':  # Doesn't start with space
+                wired_search = re.search('eth[0-9]|em[0-9]|p[1-9]p[1-9]'.encode(), line)
+                if not wired_search:  # Isn't wired
+                    iface = line[:line.find(' '.encode())]
+                    if 'Mode:Monitor'.encode() in line:
+                        monitors.append(iface)
+                    elif 'IEEE 802.11'.encode() in line:
+                        if "ESSID:\"".encode() in line:
+                            interfaces[iface] = 1
+                        else:
+                            interfaces[iface] = 0
 
 
 # Wrapper for all cmds
