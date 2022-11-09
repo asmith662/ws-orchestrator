@@ -14,6 +14,7 @@ from pyrcrack.executor import Option
 
 class Executor:
     """Abstract class interface to a shell command."""
+
     def __init__(self):
         """Set docstring."""
         if not self.__doc__:
@@ -149,21 +150,4 @@ def stc(command):
     return stringcase.pascalcase(command.replace('-', '_'))
 
 
-def parse_defaults(doc):
-    defaults = []
-    for s in parse_section('options:', doc):
-        """FIXME corner case "bla: options: --foo"""
-        _, _, s = s.partition(':')  # get rid of "options:"
-        split = re.split(r'\n *(-\S+?)', '\n' + s)[1:]
-        split = [s1 + s2 for s1, s2 in zip(split[::2], split[1::2])]
-        for sp in split:
-            if sp.startswith('-'):
-                print(s)
-                defaults += s
-    return defaults
 
-
-def parse_section(name, source):
-    pattern = re.compile('^([^\n]*' + name + '[^\n]*\n?(?:[ \t].*?(?:\n|$))*)',
-                         re.IGNORECASE | re.MULTILINE)
-    return [s.strip() for s in pattern.findall(source)]
