@@ -58,10 +58,19 @@ class Test:
     """
 
 
-class OptsDoc:
+class OptsParser:
+    def __init__(self, docstring):
+        if not docstring:
+            self.docstring, self.name, self.args, self.kwargs = '', None, [], {}
+        else:
+            self.docstring = docstring
+            self.name, self.args = self.usage(self._rows(docstring))
 
     @staticmethod
-    def _rows(docstring):
+    def calc_indent(docstring):
+
+    @classmethod
+    def _rows(cls, docstring):
         if not docstring:
             return ['']
         lines = docstring.expandtabs().splitlines()
@@ -71,33 +80,44 @@ class OptsDoc:
                 max_indent = min(max_indent, len(line) - len(stripped))
         return [line[max_indent:].strip() for line in lines if line != ''] if max_indent < sys.maxsize else ['']
 
-    @staticmethod
-    def usage(docstring):
-        usage = [r.split() for r in OptsDoc._rows(docstring) if 'usage:' in r.lower()][0]
-        print(usage[3][1:-1])
-        return {'name': usage[1], 'section': usage[2], }
+    @classmethod
+    def _sections
+
+    @classmethod
+    def _inrow(cls, row, *args):
+        for arg in args:
+            if arg in row.lower():
+                return True
+        return False
 
     @staticmethod
-    def _search(heading, row):
-        return row if f'{heading}:' in row.lower() else None
+    def usage(rows):
+        for r in rows:
+            if OptsParser.c('usage:'):
+                section, name, args = r.replace('[options] ', '').split(' ', 2)
+                args = [a[1:-1] for a in re.findall(r'<.+>|\[.+]', args)]
+                return name, args
+
+    @staticmethod
+    def _options(rows):
+        for r in rows:
+            if OptsParser.c('options:'):
 
     @staticmethod
     def data(docstring):
         details = {}
-        rows, row_num = OptsDoc._rows(docstring), 0
-        desc_start, desc_end, opts_start, opts_end = [None] * 4
-        for r in OptsDoc._rows(docstring):
+        rows = OptsParser._rows(docstring)
+        row_num = 0
+        opt_types = []
+        row_num = 0
+        for r in rows[(row_num - 1):]:
+            print(r)
             row_num += 1
-            if 'name:' in r.lower():
-                details.update(fullname=(r.split(':')[1].strip()), name=r.split()[1])
-            elif 'synopsis:' in r.lower():
-                details.update(files=True if r.split(']')[1].strip()[1:-1] != '' else False)
-            elif 'description:' in r.lower():
-                desc_start = row_num - 1
-            elif 'options:' in r.lower():
-                desc_end, opts_start, opts_end = row_num - 1, row_num, len(rows)
-        details.update(description=' '.join(rows[desc_start:desc_end])[13:])
-        options = rows[opts_start:opts_end]
-        print(details)
-        print(options)
-    s = _search
+            if 'options:' in r.lower():
+                opt_types.append(r[:-9])
+            print(r)
+            if re.search(r'^(--|-)', r):
+                print(r)
+        print(opt_types)
+
+    c = check
