@@ -1,8 +1,11 @@
 import re
-import sys
 
 
 class OptsParser:
+    """
+        TO DO:
+            - populate meta dict and return it along with kwargs
+    """
     redir = '^(-|--)\\w+'
     sect = '(?<=\n).+(?=\n)'
 
@@ -12,8 +15,6 @@ class OptsParser:
         self.args = self.args(docstring)
         self.kwargs = self.kwargs(docstring)
         self.dict = {'args': self.args, 'kwargs': self.kwargs}
-        # self.name, self.args = self.usage(self._doc(docstring))
-        # self.kwargs = self._options(self._doc(docstring))
 
     @classmethod
     def _section(cls, docstring):
@@ -44,14 +45,3 @@ class OptsParser:
             else:
                 kwargs += [{cmd: args}]
         return kwargs
-
-    # @classmethod
-    # def _rows(cls, docstring):
-    #     if not docstring:
-    #         return ['']
-    #     lines = docstring.expandtabs().splitlines()
-    #     max_indent = sys.maxsize
-    #     for line in lines:
-    #         if stripped := line.strip():
-    #             max_indent = min(max_indent, len(line) - len(stripped))
-    #     return [line[max_indent:].strip() for line in lines] if max_indent < sys.maxsize else ['']
