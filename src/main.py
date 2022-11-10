@@ -1,12 +1,7 @@
 import asyncio
 import subprocess
 
-from pyrcrack import AircrackNg
-
-from src.models.network.interfaces import Interfaces
-from src.models.general.users import Users
-from src.models.resources.scrapy import iwconfig
-from src.models.tools.doc import OptsParser
+from src.models.command.doc import Doc
 
 
 async def main():
@@ -15,8 +10,8 @@ async def main():
         # print(monitors)
         # print(interfaces)
         s = subprocess.check_output('aircrack-ng 2>&1; echo', shell=True).decode()
-        kwargs = OptsParser(s).dict
-        for k, v in kwargs.items():
+        d = Doc(s).options
+        for k, v in d.items():
             print(k, v)
 
 
