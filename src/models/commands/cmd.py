@@ -1,60 +1,29 @@
-import asyncio
-import functools
-import itertools
 import logging
 import os
 import re
-import subprocess
+import subprocess as sub
 import sys
 import tempfile
-import uuid
-from abc import ABC, abstractmethod
-
-import docopt
-import pyrcrack
-
-cprompt = ["cmd", "/c"]
-pshell = ["pwsh", "-Command"]
-bash = ['bash', '-c']
 
 
-class DocOptions:
-    def __init__(self, short=None, long=None, argcount=0, value=False):
-        assert argcount in (0, 1)
-        self.short, self.long = short, long
-        self.argcount, self.value = argcount, value
-        self.value = None if value is False and argcount else value
+def testme(pwd: str, cmd: str):
+    """Creates a secure temp pass file which allows sudo commands to be tested then the file is deleted."""
 
-    @classmethod
-    def parse(cls, option_description):
-        short, long, argcount, value = None, None, 0, False
-        options, _, description = option_description.strip().partition('  ')
-        options = options.replace(',', ' ').replace('=', ' ')
-        for s in options.split():
-            if s.startswith('--'):
-                long = s
-            elif s.startswith('-'):
-                short = s
-            else:
-                argcount = 1
-        if argcount:
-            matched = re.findall(r'\[default: (.*)]', description, flags=re.I)
-            value = matched[0] if matched else None
-        return cls(short, long, argcount, value)
+    # creating tempfile and writing password to it
+    fd, path = tempfile.mkstemp(prefix=f'{os.getlogin()}_', suffix='_key')
+    with os.fdopen(fd, 'wb') as fp:
+        fp.write(pwd.encode())
 
-    def single_match(self, left):
-        for n, p in enumerate(left):
-            if self.name == p.name:
-                return n, p
-        return None, None
+    #                                               Your Code Here:
+    # ---------------------------------------------------START----------------------------------------------------------
 
-    @property
-    def name(self):
-        return self.long or self.short
+    # ----------------------------------------------------END-----------------------------------------------------------
 
-    def __repr__(self):
-        return f'Options(short={self.short},long={self.long},argcount={self.argcount},value={self.value})'
-
+    # deleting tempfile and printing result
+    result = sub.run(f'sudo -S rm {path}'.split(), **dict(stderr=sub.DEVNULL, input=open(path, 'r').read().encode())
+                     ).returncode
+    print('Success' if result == 0 else f'Failure with return code: {result}')
+    
 
 class Cmd:
     def __init__(self, cmd, pwd=None, timeout=None, capture_output=True, encoding='utf-8'):
@@ -69,20 +38,20 @@ class Cmd:
     @staticmethod
     def run(cmd, options):
         try:
-            return subprocess.run(cmd.split(), **options).stdout
-        except subprocess.CalledProcessError as exc:
+            return sub.run(cmd.split(), **options).stdout
+        except sub.CalledProcessError as exc:
             m = f'Process failed due to unsuccessful return code. [{exc.returncode}]\n{exc}'
             logging.warning(m)
-        except subprocess.TimeoutExpired as exc:
+        except sub.TimeoutExpired as exc:
             logging.warning(f'Process timed out.\n{exc}\nSending shutdown signal..'), sys.exit()
 
     def _options(self, pwd):
         if not self.sudo:
             return dict(timeout=self.timeout, capture_output=self.capture_output, encoding=self.encoding,
-                        stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+                        stdout=sub.PIPE, stderr=sub.PIPE)
         if pwd:
             return dict(input=pwd, timeout=self.timeout, capture_output=self.capture_output, encoding=self.encoding,
-                        stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+                        stdout=sub.PIPE, stderr=sub.PIPE)
         else:
             m = f'Missing password for sudo command:\n{self.cmd}\nSending shutdown signal..'
             print(m), logging.warning(m), sys.exit()
@@ -98,8 +67,7 @@ class AsyncCmd:
         monitors, interfaces = [], {}
         proc = None
         try:
-            proc = subprocess.Popen(cmd.split(),
-                                    stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=open(os.devnull, 'w'))
+            proc = sub.Popen(cmd.split(), stdin=sub.PIPE, stdout=sub.PIPE, stderr=open(os.devnull, 'w'))
         except OSError:
             logging.warning(f'Could not execute:\n"{self.cmd}"\nSending shutdown signal..')
         for line in proc.communicate(pwd.encode())[0].split('\n'.encode()):
@@ -118,7 +86,7 @@ class AsyncCmd:
                             interfaces[iface] = 0
 
     @staticmethod
-    def kill(process: subprocess.Popen, exception: Exception, cmd: str, stderr: bytes or None) -> None:
+    def kill(process: sub.Popen, exception: Exception, cmd: str, stderr: bytes or None) -> None:
         logging.warning(f"{exception} while running {cmd}")
         if stderr:
             logging.warning("stderr:", stderr.decode())
@@ -128,14 +96,14 @@ class AsyncCmd:
 
 def check():
     """Check if aircrack-ng is compatible."""
-    assert '1.6' in subprocess.check_output(['aircrack-ng', '-v'])
+    assert b'1.6' in sub.check_output(['aircrack-ng', '-v'])
 
 # def run_cmd2(cmd1: [str], cmd2: [str] or None, pwd: str = Password) -> None:
 #     pwd = pwd_check(pwd)
 #     s1, s2 = sudo(cmd1), sudo(cmd2)
 #     print(s1, s2)
-#     p1 = subprocess.Popen(s1, stderr=subprocess.STDOUT, stdout=subprocess.PIPE, stdin=subprocess.PIPE, )
-#     p2 = subprocess.Popen(s2, stdout=subprocess.PIPE, stdin=p1.stdout, )
+#     p1 = sub.Popen(s1, stderr=sub.STDOUT, stdout=sub.PIPE, stdin=sub.PIPE, )
+#     p2 = sub.Popen(s2, stdout=sub.PIPE, stdin=p1.stdout, )
 #     e1, e2 = None, None
 #     try:
 #         o1, e1 = p1.communicate(input=pwd.encode())
@@ -148,12 +116,12 @@ def check():
 #
 # def run_background_cmd(cmd: str, pwd: str = Password, timeout: int = 5):
 #     pwd = pwd_check(pwd)
-#     p = subprocess.Popen(sudo(cmd), stderr=subprocess.PIPE, stdout=subprocess.PIPE, stdin=subprocess.PIPE)
+#     p = sub.Popen(sudo(cmd), stderr=sub.PIPE, stdout=sub.PIPE, stdin=sub.PIPE)
 #     err = None
 #     try:
 #         out, err = p.communicate(input=(pwd + '\n').encode(), timeout=timeout)
 #         return out.decode()
-#     except subprocess.TimeoutExpired as expired:
+#     except sub.TimeoutExpired as expired:
 #         kill(p, expired, cmd, err)
 #     except Exception as e:
 #         kill(p, e, cmd, err)
@@ -162,7 +130,7 @@ def check():
 # Not sure if this one will work or not, but leaving it for now
 # def stream_cmd(cmd: str, pwd: str = Password):
 #     pwd = pwd_check(pwd)
-#     p = subprocess.Popen(sudo(cmd), stderr=subprocess.STDOUT, stdout=subprocess.PIPE, stdin=subprocess.PIPE,
+#     p = sub.Popen(sudo(cmd), stderr=sub.STDOUT, stdout=sub.PIPE, stdin=sub.PIPE,
 #                          universal_newlines=True, bufsize=0)
 #     out, err = None, None
 #     try:
