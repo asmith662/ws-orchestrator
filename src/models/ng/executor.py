@@ -4,8 +4,7 @@ import itertools
 import logging
 import os
 import re
-import subprocess
-from subprocess import Popen, PIPE, DEVNULL
+from subprocess import Popen, PIPE, DEVNULL, check_output
 import tempfile
 import uuid
 from abc import abstractmethod
@@ -151,8 +150,9 @@ class Option:
 class Executor:
     """Abstract class interface to a shell command."""
 
-    def __init__(self):
+    def __init__(self, secret):
         """Set docstring."""
+        self.secret = secret if secret else PIPE
         if not self.__doc__:
             self.__doc__ = self.helpstr
         self.uuid = uuid.uuid4().hex
@@ -186,7 +186,7 @@ class Executor:
     def helpstr(self):
         """Extract help string for current command."""
         helpcmd = f'{self.command} 2>&1; echo'
-        return subprocess.check_output(helpcmd, shell=True).decode()
+        return check_output(helpcmd, shell=True).decode()
 
     @property
     @functools.lru_cache()
@@ -210,7 +210,7 @@ class Executor:
 
         options = list((Option(self.usage, a, v, self.logger) for a, v in kwargs.items()))
         self.logger.debug(f"Got options: {options}")
-        opts = ['sudo', self.command] + list(args) + list(itertools.chain(*(o.parsed for o in options)))
+        opts = ['sudo', '-S', self.command] + list(args) + list(itertools.chain(*(o.parsed for o in options)))
 
         self.logger.debug(f"Running command: {opts}")
         return opts
@@ -218,24 +218,11 @@ class Executor:
     async def run(self, *args, **kwargs):
         """Run asynchronously."""
         opts = self._run(*args, **kwargs)
-        # pwd = subprocess.Popen(shlex.split('cat sudo.txt'), stdout=subprocess.PIPE)
-        # fd, path = tempfile.mkstemp()
-        # try:
-        #     with os.fdopen(fd, 'wb') as f:
-        #         f.write(b'Af4Tf2Dp!')
-        #
-        #     print(open(path, 'r').read())
-        path = '/temp'
-        print(opts)
         self.proc = await asyncio.create_subprocess_exec(
             *opts,
-            stdin=PIPE,
-            stdout=subprocess.PIPE,
-            stderr=open(os.devnull, 'w'))
-        # pwd.stdout.close()
-        # finally:
-        #     subprocess.run('')
-        #     os.remove(path)
+            stdin=self.secret,
+            stdout=PIPE,
+            stderr=DEVNULL)
         return self.proc
 
     def __call__(self, *args, **kwargs):
@@ -263,9 +250,7 @@ class Executor:
 
     async def readlines(self):
         """Return lines as per proc.communicate, non-empty ones."""
-        lines = (await self.proc.communicate())[0].split(b'\n')
-        print(lines)
-        return [a for a in lines if a != b'']
+        return [a for a in (await self.proc.communicate())[0].split(b'\n') if a != b'']
 
     @property
     async def results(self):

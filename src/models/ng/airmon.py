@@ -8,8 +8,8 @@ class AirmonNg(Executor):
     requires_tempfile = False
     requires_tempdir = False
 
-    def __init__(self):
-        super().__init__()
+    def __init__(self, secret):
+        super().__init__(secret)
         self.dirty = False
         self.monitor_enabled = []
 
@@ -56,5 +56,4 @@ class AirmonNg(Executor):
         if not self.dirty:
             await self.run()
             self.dirty = False
-        # return [i.interface for i in Interfaces(await self.readlines()).interfaces]
         return Interfaces(await self.readlines()).interfaces
