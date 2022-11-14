@@ -6,6 +6,17 @@ import sys
 import tempfile
 
 
+def test(password: str):
+    read, write = os.pipe()
+    os.write(write, bytes(password))
+    os.close(write)
+    out = sub.check_output('sudo -S echo CONFIRMED'.split(), stdin=read, stderr=sub.DEVNULL)
+    if b'CONFIRMED' in out:
+        return True
+    else:
+        return False
+
+
 def testme(pwd: str, cmd: str):
     """Creates a secure temp pass file which allows sudo commands to be tested then the file is deleted."""
 
@@ -23,7 +34,7 @@ def testme(pwd: str, cmd: str):
     result = sub.run(f'sudo -S rm {path}'.split(), **dict(stderr=sub.DEVNULL, input=open(path, 'r').read().encode())
                      ).returncode
     print('Success' if result == 0 else f'Failure with return code: {result}')
-    
+
 
 class Cmd:
     def __init__(self, cmd, pwd=None, timeout=None, capture_output=True, encoding='utf-8'):

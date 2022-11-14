@@ -1,15 +1,11 @@
 import asyncio
 import logging
-import os
-import subprocess as sub
-import tempfile
+from subprocess import Popen, PIPE, DEVNULL
 
-from pyrcrack import AirodumpNg
 from rich.console import Console
 from rich.prompt import Prompt
 
-from src import Startup, find_user
-from src.models.ng import *
+from src.models import Startup, User, AirmonNg, AirodumpNg, secret_manager
 
 
 async def scan_for_targets():
@@ -18,8 +14,9 @@ async def scan_for_targets():
     console.clear()
     console.show_cursor(False)
     amon = AirmonNg()
+    print('here')
     ifaces = [a.interface for a in await amon.interfaces]
-
+    print(ifaces)
     interface = Prompt.ask('Select an interface', choices=ifaces)
 
     async with amon(interface) as mon:
@@ -36,22 +33,25 @@ async def scan_for_targets():
 async def main():
     if __name__ == '__main__':
         Startup()
-        user = find_user()
+        # print(test())
+        path = User().secret_file
+        with secret_manager(path) as sec:
+            proc = Popen(f'sudo -S iwconfig'.split(), stdout=PIPE, stderr=DEVNULL, stdin=sec)
+            out = proc.communicate()[0].split(b'\n')
+            for o in out:
+                print(o)
+        # user.secret_fp = ''
+        # with secret_manager(user) as sec:
+        #     proc = sub.Popen(f'sudo -S iwconfig'.split(), stdout=sub.PIPE, stdin=sec.read().encode())
+        #     out = proc.communicate()[0].split(b'\n')
+        # for o in out:
+        #     print(o)
         # await scan_for_targets()
-
-        # out = None
-        # with Popen(f'ls /tmp'.split(), stdout=PIPE) as proc_launch:
-        #     out = proc_launch.communicate()[0].split(b'\n')
-        # for line in out:
-        #     print(line)
-
-        fd, path = tempfile.mkstemp(prefix=f'{os.getlogin()}_', suffix='_key')
-        with os.fdopen(fd, 'wb') as fp:
-            fp.write(''.encode())
-
-        result = sub.run(f'sudo -S rm {path}'.split(), **dict(stderr=sub.DEVNULL, input=open(path, 'r').read().encode())
-                         ).returncode
-        print('return code', result)
+        # read, write = os.pipe()
+        # os.write(write, b"")
+        # os.close(write)
+        # out = sub.check_call('sudo -S echo TRUE'.split(), stdin=read, stderr=sub.DEVNULL)
+        # print(out)
 
 
 asyncio.run(main())

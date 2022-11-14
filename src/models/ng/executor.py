@@ -210,7 +210,7 @@ class Executor:
 
         options = list((Option(self.usage, a, v, self.logger) for a, v in kwargs.items()))
         self.logger.debug(f"Got options: {options}")
-        opts = ['sudo', '-S', self.command] + list(args) + list(itertools.chain(*(o.parsed for o in options)))
+        opts = ['sudo', self.command] + list(args) + list(itertools.chain(*(o.parsed for o in options)))
 
         self.logger.debug(f"Running command: {opts}")
         return opts
@@ -226,17 +226,17 @@ class Executor:
         #
         #     print(open(path, 'r').read())
         path = '/temp'
+        print(opts)
         self.proc = await asyncio.create_subprocess_exec(
             *opts,
-            stdin=open(path, 'r'),
+            stdin=PIPE,
             stdout=subprocess.PIPE,
             stderr=open(os.devnull, 'w'))
-            # pwd.stdout.close()
-
+        # pwd.stdout.close()
         # finally:
         #     subprocess.run('')
         #     os.remove(path)
-        #     return self.proc
+        return self.proc
 
     def __call__(self, *args, **kwargs):
         self.run_args = args, kwargs
@@ -263,7 +263,9 @@ class Executor:
 
     async def readlines(self):
         """Return lines as per proc.communicate, non-empty ones."""
-        return [a for a in (await self.proc.communicate())[0].split(b'\n') if a != b'']
+        lines = (await self.proc.communicate())[0].split(b'\n')
+        print(lines)
+        return [a for a in lines if a != b'']
 
     @property
     async def results(self):
@@ -289,4 +291,3 @@ class Executor:
 def stc(command):
     """Convert snake case to camelcase in class format."""
     return stringcase.pascalcase(command.replace('-', '_'))
-
