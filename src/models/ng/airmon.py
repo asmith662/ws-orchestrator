@@ -46,8 +46,8 @@ class AirmonNg(Executor):
         await self.run('start', self.run_args[0][0])
         # Save interface data while we're on the async cm.
         self._interface_data = await self.interfaces
-        from . import MONITOR
-        self.monitor_token = MONITOR.set(self.monitor_interface)
+        # from . import MONITOR
+        # self.monitor_token = MONITOR.set(self.monitor_interface)
         return self
 
     async def select_interface(self, regex):
@@ -60,12 +60,12 @@ class AirmonNg(Executor):
     async def __aexit__(self, *args, **kwargs):
         """Set monitor-enabled interfaces back to normal"""
         await self.run('stop', self.monitor_interface)
-        self.dirty = False
-        await asyncio.sleep(1)
-        if self.monitor_token:
-            from . import MONITOR
-            MONITOR.reset(self.monitor_token)
-        await self.interfaces
+        # self.dirty = False
+        # await asyncio.sleep(1)
+        # if self.monitor_token:
+        #     from . import MONITOR
+        #     MONITOR.reset(self.monitor_token)
+        # await self.interfaces
         # if self.monitor_interface == 'wlan0':
         #     run('sudo -S ip link set wlan0 down'.split(), stdin=self.secret, stderr=DEVNULL)
         #     run('sudo -S iw wlan0 set type managed'.split(), stdin=self.secret, stderr=DEVNULL)
@@ -95,5 +95,5 @@ class AirmonNg(Executor):
         data = await self.readlines()
         return Interfaces(data)
 
-    def __str__(self):
-        return self.monitor_interface
+    # def __str__(self):
+    #     return self.monitor_interface

@@ -17,40 +17,40 @@ async def scan_for_targets(secret):
     # iface = [a.asdict() for a in await airmon.interfaces][0]
     interface = Prompt.ask('Select an interface',
                            choices=[str(a) for a in interfaces])
-    client = None
-    ap_ = None
-
-    async with airmon(interface) as mon:
-        async with AirodumpNg(secret) as pdump:
-            # results = pdump(MONITOR.get())
-            # while not results:
-            #     results = pdump(MONITOR.get())
-            #     await asyncio.sleep(2)
-            print('here', mon.monitor_interface)
-            async for aps in pdump(mon.monitor_interface):
-                console.clear()
-                # console.print(aps.table)
-                print(aps)
-                client = Prompt.ask(
-                    'Select an AP',
-                    choices=['continue', *[str(a) for a in range(len(aps))]])
-                if client != 'continue':
-                    ap_ = aps[int(client)]
-                    break
-
-        if not ap_:
-            return
-
-        async with AirodumpNg(secret) as pdump:
-            console.print(
-                ":vampire:",
-                f"Selected client: [red] {ap_.bssid} [/red]")
-
-            async for result in pdump(MONITOR.get(), **ap_.airodump):
-                console.clear()
-                # console.print(result.table)
-                print(result.table)
-                await asyncio.sleep(3)
+    # client = None
+    # ap_ = None
+    #
+    # async with airmon(interface) as mon:
+    #     async with AirodumpNg(secret) as pdump:
+    #         # results = pdump(MONITOR.get())
+    #         # while not results:
+    #         #     results = pdump(MONITOR.get())
+    #         #     await asyncio.sleep(2)
+    #         print('here', mon.monitor_interface)
+    #         async for aps in pdump(mon.monitor_interface):
+    #             console.clear()
+    #             # console.print(aps.table)
+    #             print(aps)
+    #             client = Prompt.ask(
+    #                 'Select an AP',
+    #                 choices=['continue', *[str(a) for a in range(len(aps))]])
+    #             if client != 'continue':
+    #                 ap_ = aps[int(client)]
+    #                 break
+    #
+    #     if not ap_:
+    #         return
+    #
+    #     async with AirodumpNg(secret) as pdump:
+    #         console.print(
+    #             ":vampire:",
+    #             f"Selected client: [red] {ap_.bssid} [/red]")
+    #
+    #         async for result in pdump(MONITOR.get(), **ap_.airodump):
+    #             console.clear()
+    #             # console.print(result.table)
+    #             print(result.table)
+    #             await asyncio.sleep(3)
     # async with airmon(iface) as mon:
     #     async with AirodumpNg(secret) as pdump:
     #         async for aps in pdump(mon.monitor_interface):
@@ -66,15 +66,15 @@ async def scan_for_targets(secret):
     #
     # interface = Prompt.ask('Select an interface', choices=ifaces)
     #
-    # async with airmon(interface) as mon:
-    #     print(f'Monitoring mode enabled on: [{interface}]')
-    #     async with AirodumpNg(secret) as pdump:
-    #         print('starting airodump')
-    #         async for result in pdump(mon.monitor_interface):
-    #             print(result)
-    #             console.clear()
-    #             console.print(result.table)
-    #             await asyncio.sleep(2)
+    async with airmon(interface) as mon:
+        print(f'Monitoring mode enabled on: [{interface}]')
+        async with AirodumpNg(secret) as pdump:
+            print('starting airodump')
+            async for result in pdump(mon.monitor_interface):
+                print(result)
+                console.clear()
+                console.print(result.table)
+                await asyncio.sleep(2)
 
 
 async def main():
