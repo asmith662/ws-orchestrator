@@ -1,4 +1,4 @@
-from .models.auth import User, secret_manager
+from .models.auth import User
 from .models.config import Startup
 
 

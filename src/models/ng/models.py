@@ -32,16 +32,19 @@ class Interface:
 
     def __init__(self, data, monitor_data):
         self.data = data
-        self.physical = data['phy']
-        self.name = data['interface']
-        self.driver = data['driver']
-        self.chipset = data['chipset']
-        if monitor_data:
-            self.prev_interface = data['original_interface']
-            self.mode = data['mode']
-            for data in monitor_data:
-                if self.prev_interface == self.name:
-                    self.data[self.mode] = data
+        for data in monitor_data:
+            if data['original_interface'] == self.data['interface']:
+                self.data[data['mode']] = data
+        # self.physical = data['phy']
+        # self.name = data['interface']
+        # self.driver = data['driver']
+        # self.chipset = data['chipset']
+        # if monitor_data:
+        #     self.prev_interface = data['original_interface']
+        #     self.mode = data['mode']
+        #     for data in monitor_data:
+        #         if self.prev_interface == self.name:
+        #             self.data[self.mode] = data
 
     @property
     def interface(self):
@@ -54,6 +57,7 @@ class Interface:
 
     @property
     def monitor(self):
+        # print(self.data)
         return self.data.get('monitor', {}).get('interface', self.data['interface'])
 
     def asdict(self):
@@ -74,25 +78,26 @@ class Interfaces(Result):
         monitor_data = filter(lambda x: MONITOR_RE.match(x.decode()), data[pos + len(ifaces_data):])
         keys = ['driver', 'mode', 'status', 'original_interface', 'interface']
         monitor_data = [dict(zip(keys, self.groups(a))) for a in monitor_data]
-        self.interfaces = [Interface(a, monitor_data) for a in ifaces_data]
-        # self.extend([Interface(a, monitor_data) for a in ifaces_data])
+        # self.interfaces = [Interface(a, monitor_data) for a in ifaces_data]
+        # [print(i) for i in self.interfaces]
+        self.extend([Interface(a, monitor_data) for a in ifaces_data])
 
     @classmethod
     def groups(cls, data):
         return MONITOR_RE.match(data.decode()).groups()
 
-    def __iter__(self):
-        return self
-
-    def __next__(self):
-        if self.interfaces:
-            for count, interface in enumerate(self.interfaces):
-                if count == len(self.interfaces):
-                    raise StopIteration
-                else:
-                    return interface
-        else:
-            raise StopIteration
+    # def __iter__(self):
+    #     return self
+    #
+    # def __next__(self):
+    #     if self.interfaces:
+    #         for count, interface in enumerate(self.interfaces):
+    #             if count == len(self.interfaces):
+    #                 raise StopIteration
+    #             else:
+    #                 return interface
+    #     else:
+    #         raise StopIteration
 
     @staticmethod
     def parse(res):

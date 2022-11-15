@@ -4,6 +4,19 @@ import re
 import subprocess as sub
 import sys
 import tempfile
+from contextlib import contextmanager
+
+
+@contextmanager
+def secret():
+    read, write = os.pipe()
+    os.write(write, b'')
+    os.close(write)
+    pwd = open(read, 'r')
+    try:
+        yield pwd
+    finally:
+        pwd.close()
 
 
 def test(password: str):

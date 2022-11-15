@@ -4,7 +4,9 @@ import itertools
 import logging
 import os
 import re
-from subprocess import Popen, PIPE, DEVNULL, check_output
+from contextlib import suppress
+from contextvars import ContextVar
+from subprocess import Popen, PIPE, DEVNULL, check_output, CalledProcessError
 import tempfile
 import uuid
 from abc import abstractmethod
@@ -218,11 +220,12 @@ class Executor:
     async def run(self, *args, **kwargs):
         """Run asynchronously."""
         opts = self._run(*args, **kwargs)
+        print(opts)
         self.proc = await asyncio.create_subprocess_exec(
             *opts,
             stdin=self.secret,
             stdout=PIPE,
-            stderr=DEVNULL)
+            stderr=PIPE)
         return self.proc
 
     def __call__(self, *args, **kwargs):
@@ -250,7 +253,10 @@ class Executor:
 
     async def readlines(self):
         """Return lines as per proc.communicate, non-empty ones."""
-        return [a for a in (await self.proc.communicate())[0].split(b'\n') if a != b'']
+        com = [a for a in (await self.proc.communicate())[0].split(b'\n') if a]
+        print(com)
+        return com
+        # return [a for a in (await self.proc.communicate())[0].split(b'\n') if a != b'']
 
     @property
     async def results(self):
