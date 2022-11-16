@@ -13,7 +13,7 @@ async def scan_for_targets(secret):
     console.show_cursor(False)
     airmon = AirmonNg(secret)
     interfaces = await airmon.interfaces
-    print([str(a) for a in interfaces])
+
     # iface = [a.asdict() for a in await airmon.interfaces][0]
     interface = Prompt.ask('Select an interface',
                            choices=[str(a) for a in interfaces])
