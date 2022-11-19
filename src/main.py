@@ -83,10 +83,10 @@ async def main():
         Startup()
         user = User()
         with user.secret() as sec:
-            hci = HciConfig(sec)
-            results = await hci.get_result()
-            print(results)
-            # await scan_for_targets(sec)
+            # hci = HciConfig(sec)
+            # results = await hci.get_result()
+            # print(results)
+            await scan_for_targets(sec)
 
 
 asyncio.run(main())
