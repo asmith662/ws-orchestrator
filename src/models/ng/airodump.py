@@ -67,7 +67,7 @@ class AirodumpNg(Executor):
     command = "airodump-ng"
     requires_tempfile = False
     requires_tempdir = True
-    requires_root = False
+    requires_root = True
 
     async def run(self, *args, **kwargs):
         """Run async, with prefix established as tempdir."""
