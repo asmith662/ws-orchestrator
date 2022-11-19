@@ -3,7 +3,8 @@ import asyncio
 from rich.console import Console
 from rich.prompt import Prompt
 
-from src.models import Startup, User, AirmonNg, AirodumpNg, MONITOR
+from src.models import Startup, User, AirmonNg, AirodumpNg
+from src.models.bluetooth import HciConfig
 
 
 async def scan_for_targets(secret):
@@ -80,43 +81,30 @@ async def scan_for_targets(secret):
 async def main():
     if __name__ == '__main__':
         Startup()
-        # print(test())
         user = User()
-        # with secret_manager(path) as sec:
-        #     proc = Popen(f'sudo -S iwconfig'.split(), stdout=PIPE, stderr=DEVNULL, stdin=sec)
-        #     out = proc.communicate()[0].split(b'\n')
-        #     for o in out:
-        #         print(o)
-        # user.secret_fp = ''
-        # with secret_manager(user) as sec:
-        #     proc = sub.Popen(f'sudo -S iwconfig'.split(), stdout=sub.PIPE, stdin=sec.read().encode())
-        #     out = proc.communicate()[0].split(b'\n')
-        # for o in out:
-        #     print(o)
         with user.secret() as sec:
-            await scan_for_targets(sec)
-        # read, write = os.pipe()
-        # os.write(write, b"")
-        # os.close(write)
-        # out = sub.check_call('sudo -S echo TRUE'.split(), stdin=read, stderr=sub.DEVNULL)
-        # print(out)
-        # with secret() as s:
-        #     result = run('sudo -S airmon-ng check kill'.split(), stdin=s, stderr=DEVNULL)
-        #     print('Killing network processes, and enabling monitoring mode')
-        #     iw = iw.split(b'\n') \
-        #         if (iw := check_output('iw dev'.split(), stdin=s, stderr=DEVNULL)) else []
-        #     iface = [i for i in iw if b'Interface' in i][0].decode()[11:]
-        #     mode = [i for i in iw if b'type' in i][0].decode()[7:]
-        #     print(iface, mode)
-        #     if iface == 'wlan0':
-        #         if mode == 'monitor':
-        #             run('sudo -S ip link set wlan0 down'.split(), stdin=s, stderr=DEVNULL)
-        #             run('sudo -S iw wlan0 set type managed'.split(), stdin=s, stderr=DEVNULL)
-        #         out = check_output('sudo -S airmon-ng start wlan0'.split(), stdin=s, stderr=DEVNULL)
-        #         print(out)
-        #     elif iface == 'wlan0mon' and mode != 'monitor':
-        #         out = check_output('sudo -S airmon-ng start wlan0'.split(), stdin=s, stderr=DEVNULL)
-        #         print(out)
+            hci = HciConfig(sec)
+            results = await hci.get_result()
+            print(results)
+            # await scan_for_targets(sec)
 
 
 asyncio.run(main())
+
+# with secret() as s:
+#     result = run('sudo -S airmon-ng check kill'.split(), stdin=s, stderr=DEVNULL)
+#     print('Killing network processes, and enabling monitoring mode')
+#     iw = iw.split(b'\n') \
+#         if (iw := check_output('iw dev'.split(), stdin=s, stderr=DEVNULL)) else []
+#     iface = [i for i in iw if b'Interface' in i][0].decode()[11:]
+#     mode = [i for i in iw if b'type' in i][0].decode()[7:]
+#     print(iface, mode)
+#     if iface == 'wlan0':
+#         if mode == 'monitor':
+#             run('sudo -S ip link set wlan0 down'.split(), stdin=s, stderr=DEVNULL)
+#             run('sudo -S iw wlan0 set type managed'.split(), stdin=s, stderr=DEVNULL)
+#         out = check_output('sudo -S airmon-ng start wlan0'.split(), stdin=s, stderr=DEVNULL)
+#         print(out)
+#     elif iface == 'wlan0mon' and mode != 'monitor':
+#         out = check_output('sudo -S airmon-ng start wlan0'.split(), stdin=s, stderr=DEVNULL)
+#         print(out)

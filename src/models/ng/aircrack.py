@@ -55,7 +55,7 @@ class AircrackNg(Executor):
     command = "aircrack-ng"
     requires_tempfile = True
     requires_tempdir = False
-    requires_root = False
+    requires_root = True
 
     async def run(self, *args, **kwargs):
         if self.tempfile:

@@ -12,6 +12,7 @@ class AirmonNg(Executor):
     command = 'airmon-ng'
     requires_tempfile = False
     requires_tempdir = False
+    requires_root = True
 
     def __init__(self, secret):
         super().__init__(secret)
@@ -23,7 +24,7 @@ class AirmonNg(Executor):
         """Check argument position. Forced for this one."""
         self.dirty = True
         if args:
-            print(args)
+            # print(args)
             assert any(a in args[0] for a in ('start', 'stop', 'check'))
         if 'start' in args:
             run('sudo -S airmon-ng check kill'.split(), stdin=self.secret, stderr=DEVNULL)

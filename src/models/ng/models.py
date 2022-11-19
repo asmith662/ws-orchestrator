@@ -2,7 +2,7 @@ import io
 import csv
 import re
 from rich.table import Table
-from parse import parse
+from xmltodict import parse
 
 DICTS = ('WLAN_', 'JAZZTEL_', 'MOVISTAR_')
 APL_FMT = "{date}  Sending {attack} (code {num}) to {dest} -- BSSID: [{bssid}]"

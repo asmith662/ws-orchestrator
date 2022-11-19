@@ -64,12 +64,13 @@ class AirodumpNg(Executor):
            -s                    : same as --cswitch
            --help                : Displays this usage screen
     """
+    command = "airodump-ng"
     requires_tempfile = False
     requires_tempdir = True
-    command = "airodump-ng"
+    requires_root = False
 
     async def run(self, *args, **kwargs):
-        """Run async, with prefix stablished as tempdir."""
+        """Run async, with prefix established as tempdir."""
         self.execn += 1
 
         kwargs = {

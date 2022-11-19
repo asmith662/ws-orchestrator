@@ -2,14 +2,11 @@ import asyncio
 import functools
 import itertools
 import logging
-import os
 import re
-from contextlib import suppress
-from contextvars import ContextVar
-from subprocess import Popen, PIPE, DEVNULL, check_output, CalledProcessError
 import tempfile
 import uuid
 from abc import abstractmethod
+from subprocess import PIPE, check_output
 
 import stringcase
 
@@ -167,6 +164,15 @@ class Executor:
             self.tempfile = tempfile.NamedTemporaryFile()
         elif self.requires_tempdir:
             self.tempdir = tempfile.TemporaryDirectory()
+        if self.requires_root:
+            self.stdin = secret
+        else:
+            self.stdin = PIPE
+
+    @property
+    @abstractmethod
+    def requires_root(self):
+        """Pipes password to command"""
 
     @property
     @abstractmethod
@@ -212,7 +218,11 @@ class Executor:
 
         options = list((Option(self.usage, a, v, self.logger) for a, v in kwargs.items()))
         self.logger.debug(f"Got options: {options}")
-        opts = ['sudo', '-S', self.command] + list(args) + list(itertools.chain(*(o.parsed for o in options)))
+
+        if self.requires_root:
+            opts = ['sudo', '-S', self.command] + list(args) + list(itertools.chain(*(o.parsed for o in options)))
+        else:
+            opts = [self.command] + list(args) + list(itertools.chain(*(o.parsed for o in options)))
 
         self.logger.debug(f"Running command: {opts}")
         return opts
@@ -223,7 +233,7 @@ class Executor:
         print(opts)
         self.proc = await asyncio.create_subprocess_exec(
             *opts,
-            stdin=self.secret,
+            stdin=self.stdin,
             stdout=PIPE,
             stderr=PIPE)
         return self.proc
