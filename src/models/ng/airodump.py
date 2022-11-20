@@ -1,7 +1,9 @@
 import asyncio
 import os
+import re
 import xml
 from contextlib import suppress
+from subprocess import run, PIPE
 
 import dotmap
 import xmltodict
@@ -118,7 +120,13 @@ class AirodumpNg(Executor):
         except asyncio.exceptions.TimeoutError:
             # No file had been generated or process hadn't started in 3
             # seconds.
-            raise Exception(await self.proc.communicate())
+            response = b' '.join(await self.proc.communicate()).decode()
+            iface = re.findall(r'wlan\d|wlan\dmon', response) if 'failed: Device or resource busy' in response else None
+            if iface:
+                run(f'ifconfig {iface} down'.split())
+                run(f'iwconfig {iface} mode monitor'.split())
+                result = run(f'ifconfig {iface} up'.split(), stderr=PIPE)
+            raise Exception(response)
 
         while self.running:
             # Avoid crashing on file creation

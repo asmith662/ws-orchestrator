@@ -230,7 +230,7 @@ class Executor:
     async def run(self, *args, **kwargs):
         """Run asynchronously."""
         opts = self._run(*args, **kwargs)
-        print(opts)
+        # print(opts)
         self.proc = await asyncio.create_subprocess_exec(
             *opts,
             stdin=self.stdin,
@@ -264,7 +264,7 @@ class Executor:
     async def readlines(self):
         """Return lines as per proc.communicate, non-empty ones."""
         com = [a for a in (await self.proc.communicate())[0].split(b'\n') if a]
-        print(com)
+        print('OUPUT:', com)
         return com
         # return [a for a in (await self.proc.communicate())[0].split(b'\n') if a != b'']
 

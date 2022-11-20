@@ -38,7 +38,6 @@ class AirmonNg(Executor):
         # result = check_call('sudo -S airmon-ng check kill'.split(), stdin=self.secret, stderr=DEVNULL)
         # print(result)
         ifaces = await self.interfaces
-        print(ifaces)
         if not any(a.interface == self.run_args[0][0] for a in ifaces):
             raise ValueError('Invalid interface selected')
         # if not any(a.interface == self.run_args[0][0] for a in ifaces):

